@@ -190,7 +190,7 @@ oxidar-snake/
 | Field               | Value       |
 |---------------------|-------------|
 | Current session     | 1           |
-| Last completed task | 1.2         |
+| Last completed task | 2.2         |
 | Status              | In progress |
 
 ---
@@ -221,7 +221,7 @@ oxidar-snake/
 
 ### Phase 2: Game Logic
 
-- [ ] **Task 2.1**: Implement board and coordinate system
+- [x] **Task 2.1**: Implement board and coordinate system
   - Create `src/game/mod.rs` with module declarations
   - Create `src/game/board.rs`:
     - `Position { x: u16, y: u16 }` — a cell coordinate (derive `Clone`, `Copy`, `PartialEq`, `Eq`, `Debug`)
@@ -239,7 +239,7 @@ oxidar-snake/
     - Food spawning produces position within board bounds
   - Commit: `feat: add toroidal board with coordinate wrapping and food spawning`
 
-- [ ] **Task 2.2**: Implement snake state and movement
+- [x] **Task 2.2**: Implement snake state and movement
   - Create `src/game/snake.rs`:
     - `Direction` enum: `Up(0)`, `Right(1)`, `Down(2)`, `Left(3)` with `#[repr(u8)]`. Implement `opposite(&self) -> Direction`
     - `Snake` struct: `name: String`, `body: VecDeque<Position>`, `dir: Direction`, `crowns: u32`, `next_dir: Option<Direction>`, `growing: u32`
