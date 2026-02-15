@@ -4,3 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = "0.24"
+rmp-serde = "1"
+rand = "0.8"
+tracing = "0.1"
+tracing-subscriber = "0.3"

@@ -1,0 +1,13 @@
+[game]
+board_width = 64
+board_height = 32
+max_players = 32
+tick_ms = 200
+snake_start_length = 4
+snake_win_length = 16
+disconnect_timeout_s = 60
+leaderboard_interval_ticks = 25
+
+[server]
+host = "0.0.0.0"
+port = 9001
