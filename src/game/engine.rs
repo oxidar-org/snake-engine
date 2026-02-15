@@ -215,6 +215,7 @@ impl GameEngine {
         &self.active
     }
 
+    #[cfg(test)]
     pub fn active_players_mut(&mut self) -> &mut HashMap<String, Snake> {
         &mut self.active
     }

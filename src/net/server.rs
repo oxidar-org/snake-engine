@@ -3,11 +3,17 @@ use std::net::SocketAddr;
 use futures_util::{SinkExt, StreamExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{broadcast, mpsc};
+use tokio::time::Interval;
 use tokio_tungstenite::tungstenite::Message;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
+
+use crate::config::Config;
+use crate::game::engine::GameEngine;
+use crate::game::snake::Direction;
+use crate::leaderboard;
 
 use super::protocol::{self, ClientMessage, ServerMessage};
-use super::session::{SessionId, SessionManager};
+use super::session::{Session, SessionId, SessionManager};
 
 /// Commands sent from connection tasks to the game loop.
 #[derive(Debug)]
@@ -26,31 +32,156 @@ pub enum Command {
     },
 }
 
-/// Shared state for the server.
-pub struct Server {
-    pub cmd_tx: mpsc::Sender<Command>,
-    pub broadcast_tx: broadcast::Sender<Vec<u8>>,
-    pub session_mgr: SessionManager,
+/// Operation requests for session manager (run on game loop task).
+#[derive(Debug)]
+pub enum SessionMgrOp {
+    Connect {
+        reply: tokio::sync::oneshot::Sender<SessionId>,
+    },
 }
 
-impl Server {
-    pub fn new() -> (Server, mpsc::Receiver<Command>) {
-        let (cmd_tx, cmd_rx) = mpsc::channel(256);
-        let (broadcast_tx, _) = broadcast::channel(64);
-        let session_mgr = SessionManager::new();
+/// Run the full server: listener + game loop.
+pub async fn run(config: Config) -> anyhow::Result<()> {
+    let (cmd_tx, cmd_rx) = mpsc::channel(256);
+    let (broadcast_tx, _) = broadcast::channel::<Vec<u8>>(64);
+    let (session_mgr_tx, session_mgr_rx) = mpsc::channel(64);
 
-        let server = Server {
-            cmd_tx,
-            broadcast_tx,
-            session_mgr,
-        };
+    let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
 
-        (server, cmd_rx)
+    let listen_cmd_tx = cmd_tx.clone();
+    let listen_broadcast_tx = broadcast_tx.clone();
+    let listen_session_tx = session_mgr_tx.clone();
+
+    // Spawn the listener
+    tokio::spawn(async move {
+        if let Err(e) = listen(addr, listen_cmd_tx, listen_broadcast_tx, listen_session_tx).await {
+            tracing::error!(error = %e, "listener failed");
+        }
+    });
+
+    // Run the game loop on the current task
+    game_loop(config, cmd_rx, broadcast_tx, session_mgr_rx).await;
+
+    Ok(())
+}
+
+/// The main game loop: processes commands, ticks, and broadcasts.
+async fn game_loop(
+    config: Config,
+    mut cmd_rx: mpsc::Receiver<Command>,
+    broadcast_tx: broadcast::Sender<Vec<u8>>,
+    mut session_mgr_rx: mpsc::Receiver<SessionMgrOp>,
+) {
+    let rng: Box<dyn rand::Rng + Send> = {
+        use rand::SeedableRng;
+        Box::new(rand::rngs::StdRng::from_rng(&mut rand::rng()))
+    };
+    let mut engine = GameEngine::new(
+        config.game.board_width,
+        config.game.board_height,
+        config.game.snake_start_length,
+        config.game.snake_win_length,
+        config.game.max_players,
+        rng,
+    );
+    let mut session_mgr = SessionManager::new();
+
+    let mut tick_interval: Interval =
+        tokio::time::interval(std::time::Duration::from_millis(config.game.tick_ms));
+    let mut tick_count: u64 = 0;
+
+    info!("game loop started");
+
+    loop {
+        tokio::select! {
+            _ = tick_interval.tick() => {
+                // Tick the engine
+                let result = engine.tick();
+                tick_count += 1;
+
+                // Broadcast crown events
+                for crown in &result.crowns {
+                    let msg: ServerMessage = crown.into();
+                    let bytes = protocol::encode(&msg);
+                    let _ = broadcast_tx.send(bytes);
+                }
+
+                // Broadcast state
+                let state_msg: ServerMessage = (&result).into();
+                let state_bytes = protocol::encode(&state_msg);
+                let _ = broadcast_tx.send(state_bytes);
+
+                // Broadcast leaderboard at interval
+                if tick_count.is_multiple_of(config.game.leaderboard_interval_ticks) {
+                    let entries = leaderboard::compute(&engine);
+                    let lb_msg = ServerMessage::Leaderboard { players: entries };
+                    let lb_bytes = protocol::encode(&lb_msg);
+                    let _ = broadcast_tx.send(lb_bytes);
+                }
+
+                // Periodic debug logging
+                if tick_count.is_multiple_of(100) {
+                    debug!(tick = tick_count, players = engine.active_players().len(), "tick stats");
+                }
+
+                // Purge stale disconnected players
+                if tick_count.is_multiple_of(50) {
+                    engine.purge_stale(config.game.disconnect_timeout_s);
+                }
+            }
+
+            Some(cmd) = cmd_rx.recv() => {
+                match cmd {
+                    Command::Join { session, username, reply } => {
+                        match session_mgr.promote(session, username.clone()) {
+                            Ok(()) => {
+                                if let Err(e) = engine.add_player(username) {
+                                    let _ = reply.send(ServerMessage::Error { msg: e.to_string() }).await;
+                                }
+                            }
+                            Err(e) => {
+                                let _ = reply.send(ServerMessage::Error { msg: e.to_string() }).await;
+                            }
+                        }
+                    }
+                    Command::Turn { session, dir } => {
+                        if let Some(username) = session_username(&session_mgr, session)
+                            && let Some(direction) = Direction::from_u8(dir)
+                        {
+                            engine.queue_turn(&username, direction);
+                        }
+                    }
+                    Command::Disconnect { session } => {
+                        if let Some(Session::Player { username }) = session_mgr.disconnect(session) {
+                            engine.remove_player(&username);
+                        } else {
+                            session_mgr.disconnect(session);
+                        }
+                    }
+                }
+            }
+
+            Some(op) = session_mgr_rx.recv() => {
+                match op {
+                    SessionMgrOp::Connect { reply } => {
+                        let id = session_mgr.connect();
+                        let _ = reply.send(id);
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn session_username(mgr: &SessionManager, id: SessionId) -> Option<String> {
+    match mgr.get(id) {
+        Some(Session::Player { username }) => Some(username.clone()),
+        _ => None,
     }
 }
 
 /// Start listening for WebSocket connections.
-pub async fn listen(
+async fn listen(
     addr: SocketAddr,
     cmd_tx: mpsc::Sender<Command>,
     broadcast_tx: broadcast::Sender<Vec<u8>>,
@@ -75,14 +206,6 @@ pub async fn listen(
             }
         });
     }
-}
-
-/// Operation requests for session manager (run on game loop task).
-#[derive(Debug)]
-pub enum SessionMgrOp {
-    Connect {
-        reply: tokio::sync::oneshot::Sender<SessionId>,
-    },
 }
 
 async fn handle_connection(

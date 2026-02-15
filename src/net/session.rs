@@ -67,6 +67,7 @@ impl SessionManager {
         self.sessions.get(&id)
     }
 
+    #[allow(dead_code)]
     pub fn player_sessions(&self) -> impl Iterator<Item = (SessionId, &str)> {
         self.sessions.iter().filter_map(|(id, s)| match s {
             Session::Player { username } => Some((*id, username.as_str())),
@@ -74,6 +75,7 @@ impl SessionManager {
         })
     }
 
+    #[allow(dead_code)]
     pub fn all_sessions(&self) -> impl Iterator<Item = SessionId> + '_ {
         self.sessions.keys().copied()
     }

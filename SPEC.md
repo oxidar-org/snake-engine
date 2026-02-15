@@ -190,7 +190,7 @@ oxidar-snake/
 | Field               | Value       |
 |---------------------|-------------|
 | Current session     | 1           |
-| Last completed task | 3.4         |
+| Last completed task | 3.5         |
 | Status              | In progress |
 
 ---
@@ -348,7 +348,7 @@ oxidar-snake/
   - **Unit tests**: None (requires integration context — tested in Phase 4)
   - Commit: `feat: add WebSocket server with connection and message handling`
 
-- [ ] **Task 3.5**: Wire game loop — ticking and broadcasting
+- [x] **Task 3.5**: Wire game loop — ticking and broadcasting
   - Modify `src/net/server.rs` (or create `src/game_loop.rs`):
     - Spawn `tokio::time::interval` task at configured tick rate
     - Each tick: `engine.tick()` → encode `State` → broadcast to all connections

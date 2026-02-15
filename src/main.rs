@@ -1,14 +1,12 @@
 mod config;
-#[allow(dead_code)]
 mod game;
-#[allow(dead_code)]
 mod leaderboard;
-#[allow(dead_code)]
 mod net;
 
 use config::Config;
 
-fn main() {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
     let path = std::env::args()
@@ -28,4 +26,6 @@ fn main() {
         port = config.server.port,
         "Configuration loaded"
     );
+
+    net::server::run(config).await
 }

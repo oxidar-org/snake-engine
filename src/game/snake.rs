@@ -23,6 +23,16 @@ impl Direction {
         }
     }
 
+    pub fn from_u8(val: u8) -> Option<Direction> {
+        match val {
+            0 => Some(Direction::Up),
+            1 => Some(Direction::Right),
+            2 => Some(Direction::Down),
+            3 => Some(Direction::Left),
+            _ => None,
+        }
+    }
+
     pub fn delta(&self) -> (i32, i32) {
         match self {
             Direction::Up => (0, -1),
