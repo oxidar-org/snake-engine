@@ -1,6 +1,8 @@
 mod config;
 #[allow(dead_code)]
 mod game;
+#[allow(dead_code)]
+mod net;
 
 use config::Config;
 
