@@ -190,7 +190,7 @@ oxidar-snake/
 | Field               | Value       |
 |---------------------|-------------|
 | Current session     | 1           |
-| Last completed task | 3.3         |
+| Last completed task | 3.4         |
 | Status              | In progress |
 
 ---
@@ -337,7 +337,7 @@ oxidar-snake/
     - Mix connected/disconnected → correct alive flags and length=0 for disconnected
   - Commit: `feat: add leaderboard ranking computation`
 
-- [ ] **Task 3.4**: Implement WebSocket server and connection handling
+- [x] **Task 3.4**: Implement WebSocket server and connection handling
   - Create `src/net/server.rs`:
     - `tokio-tungstenite` WebSocket server on configured host:port
     - On connect: assign `SessionId`, register as spectator
