@@ -15,7 +15,7 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn new(width: u16, height: u16, rng: &mut impl Rng) -> Board {
+    pub fn new(width: u16, height: u16, rng: &mut (impl Rng + ?Sized)) -> Board {
         let food = Position {
             x: rng.random_range(0..width),
             y: rng.random_range(0..height),
@@ -36,7 +36,7 @@ impl Board {
         }
     }
 
-    pub fn spawn_food(&mut self, rng: &mut impl Rng) {
+    pub fn spawn_food(&mut self, rng: &mut (impl Rng + ?Sized)) {
         self.food = Position {
             x: rng.random_range(0..self.width),
             y: rng.random_range(0..self.height),
