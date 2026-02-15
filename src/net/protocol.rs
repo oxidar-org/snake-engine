@@ -59,11 +59,7 @@ impl From<&TickResult> for ServerMessage {
         ServerMessage::State {
             tick: result.tick,
             food: [result.food.x, result.food.y],
-            snakes: result
-                .snakes
-                .iter()
-                .map(SnakeData::from)
-                .collect(),
+            snakes: result.snakes.iter().map(SnakeData::from).collect(),
         }
     }
 }

@@ -85,7 +85,13 @@ impl GameEngine {
             x: self.rng.random_range(0..self.board.width),
             y: self.rng.random_range(0..self.board.height),
         };
-        let snake = Snake::new(name.clone(), start_pos, Direction::Right, self.start_length, &self.board);
+        let snake = Snake::new(
+            name.clone(),
+            start_pos,
+            Direction::Right,
+            self.start_length,
+            &self.board,
+        );
         info!("player joined");
         self.active.insert(name, snake);
         Ok(())
@@ -95,7 +101,8 @@ impl GameEngine {
     pub fn remove_player(&mut self, name: &str) {
         if let Some(snake) = self.active.remove(name) {
             info!("player disconnected");
-            self.disconnected.insert(name.to_string(), (snake, Instant::now()));
+            self.disconnected
+                .insert(name.to_string(), (snake, Instant::now()));
         }
     }
 
@@ -157,7 +164,13 @@ impl GameEngine {
                     x: self.rng.random_range(0..self.board.width),
                     y: self.rng.random_range(0..self.board.height),
                 };
-                *snake = Snake::new(name.clone(), start_pos, Direction::Right, self.start_length, &self.board);
+                *snake = Snake::new(
+                    name.clone(),
+                    start_pos,
+                    Direction::Right,
+                    self.start_length,
+                    &self.board,
+                );
                 snake.crowns = new_crowns;
 
                 crowns.push(CrownEvent {
@@ -202,6 +215,10 @@ impl GameEngine {
         &self.active
     }
 
+    pub fn active_players_mut(&mut self) -> &mut HashMap<String, Snake> {
+        &mut self.active
+    }
+
     pub fn disconnected_players(&self) -> &HashMap<String, (Snake, Instant)> {
         &self.disconnected
     }
@@ -230,7 +247,11 @@ mod tests {
         let r2 = engine.tick();
         for s in &r2.snakes {
             let prev = r1.snakes.iter().find(|p| p.name == s.name).unwrap();
-            assert_ne!(s.body[0], prev.body[0], "snake {} should have moved", s.name);
+            assert_ne!(
+                s.body[0], prev.body[0],
+                "snake {} should have moved",
+                s.name
+            );
         }
     }
 

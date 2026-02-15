@@ -2,6 +2,8 @@ mod config;
 #[allow(dead_code)]
 mod game;
 #[allow(dead_code)]
+mod leaderboard;
+#[allow(dead_code)]
 mod net;
 
 use config::Config;
@@ -9,7 +11,9 @@ use config::Config;
 fn main() {
     tracing_subscriber::fmt::init();
 
-    let path = std::env::args().nth(1).unwrap_or_else(|| "config.toml".to_string());
+    let path = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "config.toml".to_string());
 
     let config = Config::load(&path).unwrap_or_else(|e| {
         eprintln!("Failed to load config from {path}: {e}");

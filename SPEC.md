@@ -190,7 +190,7 @@ oxidar-snake/
 | Field               | Value       |
 |---------------------|-------------|
 | Current session     | 1           |
-| Last completed task | 2.2         |
+| Last completed task | 3.3         |
 | Status              | In progress |
 
 ---
@@ -258,7 +258,7 @@ oxidar-snake/
     - Movement wraps at board edges
   - Commit: `feat: add snake with movement, growth, and direction validation`
 
-- [ ] **Task 2.3**: Implement game engine tick logic
+- [x] **Task 2.3**: Implement game engine tick logic
   - Create `src/game/engine.rs`:
     - `GameEngine` struct: `board: Board`, `active: HashMap<String, Snake>`, `disconnected: HashMap<String, (Snake, Instant)>`, `tick: u64`, `start_length`, `win_length`, `max_players`
     - `GameEngine::new(config: &GameConfig) -> GameEngine`
@@ -282,7 +282,7 @@ oxidar-snake/
 
 ### Phase 3: Networking & Protocol
 
-- [ ] **Task 3.1**: Define MessagePack protocol types
+- [x] **Task 3.1**: Define MessagePack protocol types
   - Create `src/net/mod.rs` with module declarations
   - Create `src/net/protocol.rs`:
     - `ClientMessage` enum (serde internally tagged by `"type"`):
@@ -307,7 +307,7 @@ oxidar-snake/
     - Decode invalid bytes → error
   - Commit: `feat: add MessagePack protocol types with encode/decode`
 
-- [ ] **Task 3.2**: Implement session management
+- [x] **Task 3.2**: Implement session management
   - Create `src/net/session.rs`:
     - `SessionId(u64)` — unique per connection
     - `Session` enum: `Player { username: String }` | `Spectator`
@@ -325,7 +325,7 @@ oxidar-snake/
     - Disconnect player, promote new session with same username → success
   - Commit: `feat: add session manager for player and spectator tracking`
 
-- [ ] **Task 3.3**: Implement leaderboard
+- [x] **Task 3.3**: Implement leaderboard
   - Create `src/leaderboard.rs`:
     - `Leaderboard::compute(engine: &GameEngine) -> Vec<LeaderboardEntry>`
     - Includes active snakes (alive=true, length=current) and disconnected (alive=false, length=0)
@@ -457,10 +457,11 @@ oxidar-snake/
 ### Workflow per task
 1. **Implement** the code described in the task
 2. **Write unit tests** as specified
-3. **Run `cargo test`** — all tests must pass
-4. **Run `cargo clippy`** — no warnings
-5. **Commit** with the specified commit message
-6. **Update this SPEC.md**: mark the task as `[x]`, update Session State table
+3. **Run `cargo fmt`** — format all code
+4. **Run `cargo test`** — all tests must pass
+5. **Run `cargo clippy`** — no warnings
+6. **Commit** with the specified commit message
+7. **Update this SPEC.md**: mark the task as `[x]`, update Session State table
 
 ### Spec maintenance
 - After completing each task, check off `[x]` the task in this file

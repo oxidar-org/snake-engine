@@ -43,17 +43,20 @@ pub struct Snake {
 }
 
 impl Snake {
-    pub fn new(name: String, start_pos: Position, dir: Direction, length: u16, board: &Board) -> Snake {
+    pub fn new(
+        name: String,
+        start_pos: Position,
+        dir: Direction,
+        length: u16,
+        board: &Board,
+    ) -> Snake {
         let mut body = VecDeque::with_capacity(length as usize);
         body.push_back(start_pos);
 
         let opposite = dir.opposite().delta();
         for _ in 1..length {
             let prev = *body.back().unwrap();
-            let pos = board.wrap(
-                prev.x as i32 + opposite.0,
-                prev.y as i32 + opposite.1,
-            );
+            let pos = board.wrap(prev.x as i32 + opposite.0, prev.y as i32 + opposite.1);
             body.push_back(pos);
         }
 
@@ -119,7 +122,13 @@ mod tests {
     #[test]
     fn advance_moves_head_keeps_length() {
         let board = test_board();
-        let mut snake = Snake::new("test".into(), Position { x: 4, y: 4 }, Direction::Right, 4, &board);
+        let mut snake = Snake::new(
+            "test".into(),
+            Position { x: 4, y: 4 },
+            Direction::Right,
+            4,
+            &board,
+        );
         let original_len = snake.len();
         snake.advance(&board);
         assert_eq!(snake.head(), Position { x: 5, y: 4 });
@@ -129,7 +138,13 @@ mod tests {
     #[test]
     fn grow_then_advance_increases_length() {
         let board = test_board();
-        let mut snake = Snake::new("test".into(), Position { x: 4, y: 4 }, Direction::Right, 4, &board);
+        let mut snake = Snake::new(
+            "test".into(),
+            Position { x: 4, y: 4 },
+            Direction::Right,
+            4,
+            &board,
+        );
         snake.grow();
         snake.advance(&board);
         assert_eq!(snake.len(), 5);
@@ -138,7 +153,13 @@ mod tests {
     #[test]
     fn queue_reversal_ignored() {
         let board = test_board();
-        let mut snake = Snake::new("test".into(), Position { x: 4, y: 4 }, Direction::Right, 4, &board);
+        let mut snake = Snake::new(
+            "test".into(),
+            Position { x: 4, y: 4 },
+            Direction::Right,
+            4,
+            &board,
+        );
         snake.queue_turn(Direction::Left);
         snake.apply_turn();
         assert_eq!(snake.dir, Direction::Right);
@@ -147,7 +168,13 @@ mod tests {
     #[test]
     fn queue_valid_turn_apply_advance() {
         let board = test_board();
-        let mut snake = Snake::new("test".into(), Position { x: 4, y: 4 }, Direction::Right, 4, &board);
+        let mut snake = Snake::new(
+            "test".into(),
+            Position { x: 4, y: 4 },
+            Direction::Right,
+            4,
+            &board,
+        );
         snake.queue_turn(Direction::Up);
         snake.apply_turn();
         snake.advance(&board);
@@ -158,7 +185,13 @@ mod tests {
     #[test]
     fn movement_wraps_at_edges() {
         let board = test_board();
-        let mut snake = Snake::new("test".into(), Position { x: 0, y: 0 }, Direction::Left, 4, &board);
+        let mut snake = Snake::new(
+            "test".into(),
+            Position { x: 0, y: 0 },
+            Direction::Left,
+            4,
+            &board,
+        );
         snake.advance(&board);
         assert_eq!(snake.head(), Position { x: 7, y: 0 });
     }
