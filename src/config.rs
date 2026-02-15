@@ -1,3 +1,4 @@
+use anyhow::Result;
 use serde::Deserialize;
 use std::fs;
 
@@ -27,7 +28,7 @@ pub struct ServerConfig {
 }
 
 impl Config {
-    pub fn load(path: &str) -> Result<Config, Box<dyn std::error::Error>> {
+    pub fn load(path: &str) -> Result<Config> {
         let content = fs::read_to_string(path)?;
         let config: Config = toml::from_str(&content)?;
         Ok(config)

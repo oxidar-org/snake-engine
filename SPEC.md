@@ -19,11 +19,12 @@
 
 ## Tech Stack
 
-- **Language**: Rust (2021 edition)
+- **Language**: Rust (2024 edition)
 - **Async runtime**: `tokio`
 - **WebSocket**: `tokio-tungstenite`
 - **Serialization**: `rmp-serde` (MessagePack), `serde` / `serde_derive`
 - **Configuration**: `toml`
+- **Error handling**: `anyhow`
 - **Randomization**: `rand`
 - **Observability**: `tracing` + `tracing-subscriber`
 - **Testing**: built-in `#[cfg(test)]` modules + `tests/` directory for integration tests
@@ -188,18 +189,9 @@ oxidar-snake/
 
 | Field               | Value       |
 |---------------------|-------------|
-| Current session     | 0           |
-| Last completed task | —           |
-| Status              | Not started |
-
----
-
-## Token Usage Tracking
-
-| Session | Input Tokens | Output Tokens | Total Tokens | Cost (USD) |
-|---------|--------------|---------------|--------------|------------|
-| -       | -            | -             | -            | -          |
-| **Total** | **0**      | **0**         | **0**        | **$0.00**  |
+| Current session     | 1           |
+| Last completed task | 1.2         |
+| Status              | In progress |
 
 ---
 
@@ -207,20 +199,20 @@ oxidar-snake/
 
 ### Phase 1: Project Setup
 
-- [ ] **Task 1.1**: Initialize project and git repository
+- [x] **Task 1.1**: Initialize project and git repository
   - Run `cargo init --name oxidar-snake`
   - Create `.gitignore` (include `/target`, `*.swp`, `.DS_Store`, `*.log`)
   - Initialize git repository
   - **Unit tests**: None (scaffold only)
   - Commit: `chore: initialize project and git repository`
 
-- [ ] **Task 1.2**: Create configuration system
+- [x] **Task 1.2**: Create configuration system
   - Create `config.toml` with all default values from the reference above
   - Create `src/config.rs`:
     - `Config` struct with `game: GameConfig` and `server: ServerConfig`
     - `GameConfig` struct: `board_width`, `board_height`, `max_players`, `tick_ms`, `snake_start_length`, `snake_win_length`, `disconnect_timeout_s`, `leaderboard_interval_ticks`
     - `ServerConfig` struct: `host`, `port`
-    - `Config::load(path: &str) -> Result<Config>`
+    - `Config::load(path: &str) -> anyhow::Result<Config>`
   - Update `src/main.rs`: load config from `config.toml` (or CLI arg path), initialize `tracing_subscriber`, print config, exit
   - Add all crate dependencies to `Cargo.toml`
   - Add tracing: log loaded config values at `info` level
@@ -420,7 +412,7 @@ oxidar-snake/
 
 ### Rust Patterns
 - Use `#[derive(Debug, Clone, Serialize, Deserialize)]` liberally on all data structs
-- Use `thiserror` or `anyhow` for error types — keep it simple
+- Use `anyhow::Result` for all fallible functions — keep error handling simple and consistent
 - Prefer `Arc<Mutex<T>>` or `Arc<RwLock<T>>` for shared game state between the connection handler tasks and the game loop task
 - Consider a channel-based architecture: connection tasks send commands (`Join`, `Turn`, `Disconnect`) to the game loop via `tokio::sync::mpsc`, and the game loop broadcasts state via `tokio::sync::broadcast`
 
@@ -473,7 +465,6 @@ oxidar-snake/
 ### Spec maintenance
 - After completing each task, check off `[x]` the task in this file
 - After each session, update the Session State section (session number, last task, status)
-- After each session, update the Token Usage Tracking table
 
 ### Rules
 - Never commit broken code
@@ -481,14 +472,6 @@ oxidar-snake/
 - If a task's tests fail, fix before committing
 - If a task requires changes to a previous module's public API, that's fine — update the code and tests accordingly
 - Keep tracing instrumentation consistent across all modules
-
----
-
-## Session Log
-
-| Session | Tasks Completed | Issues / Notes | Input Tokens | Output Tokens |
-|---------|----------------|----------------|--------------|---------------|
-| —       | —              | —              | —            | —             |
 
 ---
 
