@@ -145,10 +145,12 @@ async fn game_loop(
                         }
                     }
                     Command::Turn { session, dir } => {
-                        if let Some(username) = session_username(&session_mgr, session)
-                            && let Some(direction) = Direction::from_u8(dir)
-                        {
-                            engine.queue_turn(&username, direction);
+                        if let Some(username) = session_username(&session_mgr, session) {
+                            if let Some(direction) = Direction::from_u8(dir) {
+                                engine.queue_turn(&username, direction);
+                            } else {
+                                warn!(dir, "invalid direction value");
+                            }
                         }
                     }
                     Command::Disconnect { session } => {

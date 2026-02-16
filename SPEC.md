@@ -190,7 +190,7 @@ oxidar-snake/
 | Field               | Value       |
 |---------------------|-------------|
 | Current session     | 1           |
-| Last completed task | 4.2         |
+| Last completed task | 4.3         |
 | Status              | In progress |
 
 ---
@@ -382,7 +382,7 @@ oxidar-snake/
   - **Unit tests**: Add engine tests for reconnection edge cases
   - Commit: `test: verify and harden reconnection logic`
 
-- [ ] **Task 4.3**: Error handling and edge cases
+- [x] **Task 4.3**: Error handling and edge cases
   - Verify/fix:
     - Non-MessagePack binary data → `error` response, connection stays open
     - `turn` with `dir=5` (invalid) → silently ignored or error

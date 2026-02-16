@@ -205,4 +205,19 @@ mod tests {
         snake.advance(&board);
         assert_eq!(snake.head(), Position { x: 7, y: 0 });
     }
+
+    #[test]
+    fn from_u8_valid_directions() {
+        assert_eq!(Direction::from_u8(0), Some(Direction::Up));
+        assert_eq!(Direction::from_u8(1), Some(Direction::Right));
+        assert_eq!(Direction::from_u8(2), Some(Direction::Down));
+        assert_eq!(Direction::from_u8(3), Some(Direction::Left));
+    }
+
+    #[test]
+    fn from_u8_invalid_returns_none() {
+        assert_eq!(Direction::from_u8(4), None);
+        assert_eq!(Direction::from_u8(5), None);
+        assert_eq!(Direction::from_u8(255), None);
+    }
 }

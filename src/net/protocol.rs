@@ -150,4 +150,44 @@ mod tests {
         let result = decode(&[0xFF, 0x00, 0x42]);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn decode_empty_bytes() {
+        let result = decode(&[]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn decode_turn_with_invalid_dir_still_decodes() {
+        // dir=5 is valid msgpack (u8), just not a valid Direction — handled at engine level
+        let msg = ClientMessage::Turn { dir: 5 };
+        let bytes = rmp_serde::to_vec_named(&msg).unwrap();
+        let decoded = decode(&bytes).unwrap();
+        match decoded {
+            ClientMessage::Turn { dir } => assert_eq!(dir, 5),
+            _ => panic!("expected Turn"),
+        }
+    }
+
+    #[test]
+    fn decode_join_with_empty_username_still_decodes() {
+        // Empty username is valid msgpack — validated at server level
+        let msg = ClientMessage::Join {
+            username: "".into(),
+        };
+        let bytes = rmp_serde::to_vec_named(&msg).unwrap();
+        let decoded = decode(&bytes).unwrap();
+        match decoded {
+            ClientMessage::Join { username } => assert!(username.is_empty()),
+            _ => panic!("expected Join"),
+        }
+    }
+
+    #[test]
+    fn decode_server_message_as_client_fails() {
+        let msg = ServerMessage::Error { msg: "test".into() };
+        let bytes = encode(&msg);
+        let result = decode(&bytes);
+        assert!(result.is_err());
+    }
 }
