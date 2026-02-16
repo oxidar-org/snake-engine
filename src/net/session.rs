@@ -17,6 +17,12 @@ pub struct SessionManager {
     next_id: u64,
 }
 
+impl Default for SessionManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SessionManager {
     pub fn new() -> SessionManager {
         SessionManager {

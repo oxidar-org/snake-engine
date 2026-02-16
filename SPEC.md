@@ -190,8 +190,8 @@ oxidar-snake/
 | Field               | Value       |
 |---------------------|-------------|
 | Current session     | 1           |
-| Last completed task | 4.3         |
-| Status              | In progress |
+| Last completed task | 4.4         |
+| Status              | Complete    |
 
 ---
 
@@ -394,7 +394,7 @@ oxidar-snake/
   - **Unit tests**: Add protocol decode tests for edge cases, engine tests for capacity
   - Commit: `fix: handle malformed input and edge cases gracefully`
 
-- [ ] **Task 4.4**: Integration test
+- [x] **Task 4.4**: Integration test
   - Create `tests/integration.rs`:
     - Start server in background tokio task with test config (small board, fast tick)
     - Connect 2 clients, send `join` for each

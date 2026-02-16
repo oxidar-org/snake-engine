@@ -1,9 +1,4 @@
-mod config;
-mod game;
-mod leaderboard;
-mod net;
-
-use config::Config;
+use oxidar_snake::config::Config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -27,5 +22,5 @@ async fn main() -> anyhow::Result<()> {
         "Configuration loaded"
     );
 
-    net::server::run(config).await
+    oxidar_snake::net::server::run(config).await
 }
