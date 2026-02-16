@@ -299,7 +299,7 @@ async fn handle_connection(
                 }
                 Ok(ClientMessage::Turn { dir }) => {
                     if !is_player {
-                        tracing::debug!(%peer, "spectator attempted turn");
+                        warn!(%peer, "spectator attempted turn");
                         let _ = direct_tx
                             .send(ServerMessage::Error {
                                 msg: "not a player".into(),

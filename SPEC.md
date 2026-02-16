@@ -190,7 +190,7 @@ oxidar-snake/
 | Field               | Value       |
 |---------------------|-------------|
 | Current session     | 1           |
-| Last completed task | 3.5         |
+| Last completed task | 4.1         |
 | Status              | In progress |
 
 ---
@@ -362,13 +362,13 @@ oxidar-snake/
 
 ### Phase 4: Verification & Integration
 
-- [ ] **Task 4.1**: Spectator mode verification
+- [x] **Task 4.1**: Spectator mode verification
   - Verify/fix:
     - Connect without sending `join` → receives `state` and `leaderboard` broadcasts
     - Spectator sends `turn` → receives `error`
     - Spectators not in snake list
     - Spectators don't count toward `max_players`
-  - Add tracing: `debug!` when spectator attempts to send a turn
+  - Add tracing: `warn!` when spectator attempts to send a turn
   - **Unit tests**: Add test cases to session manager: spectator cannot queue turns
   - Commit: `test: verify and harden spectator mode`
 

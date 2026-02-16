@@ -128,4 +128,16 @@ mod tests {
             _ => panic!("expected Player"),
         }
     }
+
+    #[test]
+    fn spectator_is_not_player() {
+        let mut mgr = SessionManager::new();
+        let id = mgr.connect();
+
+        // A spectator session should not be a Player variant
+        assert!(matches!(mgr.get(id), Some(Session::Spectator)));
+
+        // Confirm spectator is not listed in player_sessions
+        assert_eq!(mgr.player_sessions().count(), 0);
+    }
 }
