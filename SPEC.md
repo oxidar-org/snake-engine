@@ -190,7 +190,7 @@ oxidar-snake/
 | Field               | Value       |
 |---------------------|-------------|
 | Current session     | 1           |
-| Last completed task | 4.1         |
+| Last completed task | 4.2         |
 | Status              | In progress |
 
 ---
@@ -372,7 +372,7 @@ oxidar-snake/
   - **Unit tests**: Add test cases to session manager: spectator cannot queue turns
   - Commit: `test: verify and harden spectator mode`
 
-- [ ] **Task 4.2**: Reconnection logic verification
+- [x] **Task 4.2**: Reconnection logic verification
   - Verify/fix:
     - Connect as "alice", disconnect, reconnect → same position, direction, length, crowns
     - Snake resumes moving immediately on next tick

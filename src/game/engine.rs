@@ -354,4 +354,72 @@ mod tests {
         engine.purge_stale(60);
         assert!(!engine.disconnected.contains_key("alice"));
     }
+
+    #[test]
+    fn reconnected_snake_resumes_moving() {
+        let mut engine = test_engine();
+        engine.add_player("alice".into()).unwrap();
+        engine.tick();
+
+        let head_before_disconnect = engine.active["alice"].head();
+        let dir_before = engine.active["alice"].dir;
+
+        engine.remove_player("alice");
+        engine.add_player("alice".into()).unwrap();
+
+        // Snake should move on the very next tick
+        let result = engine.tick();
+        let alice = result.snakes.iter().find(|s| s.name == "alice").unwrap();
+        assert_ne!(alice.body[0], head_before_disconnect);
+        assert_eq!(alice.dir, dir_before);
+    }
+
+    #[test]
+    fn no_duplicate_after_reconnect() {
+        let mut engine = test_engine();
+        engine.add_player("alice".into()).unwrap();
+        engine.remove_player("alice");
+        engine.add_player("alice".into()).unwrap();
+
+        let result = engine.tick();
+        let alice_count = result.snakes.iter().filter(|s| s.name == "alice").count();
+        assert_eq!(alice_count, 1);
+    }
+
+    #[test]
+    fn duplicate_username_while_connected_errors() {
+        let mut engine = test_engine();
+        engine.add_player("alice".into()).unwrap();
+        let result = engine.add_player("alice".into());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn reconnect_after_purge_creates_fresh_snake() {
+        let mut engine = test_engine();
+        engine.add_player("alice".into()).unwrap();
+
+        // Grow the snake so we can detect a reset
+        engine.active.get_mut("alice").unwrap().growing = 3;
+        for _ in 0..3 {
+            engine.tick();
+        }
+        assert_eq!(engine.active["alice"].len(), 7);
+
+        engine.remove_player("alice");
+
+        // Simulate expired timeout
+        if let Some((snake, _)) = engine.disconnected.remove("alice") {
+            engine.disconnected.insert(
+                "alice".into(),
+                (snake, Instant::now() - std::time::Duration::from_secs(120)),
+            );
+        }
+        engine.purge_stale(60);
+
+        // Reconnect — should be a fresh snake at start_length
+        engine.add_player("alice".into()).unwrap();
+        assert_eq!(engine.active["alice"].len(), 4);
+        assert_eq!(engine.active["alice"].crowns, 0);
+    }
 }
