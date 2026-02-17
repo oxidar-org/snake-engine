@@ -8,10 +8,17 @@ async fn main() -> anyhow::Result<()> {
         .nth(1)
         .unwrap_or_else(|| "config.toml".to_string());
 
-    let config = Config::load(&path).unwrap_or_else(|e| {
+    let mut config = Config::load(&path).unwrap_or_else(|e| {
         eprintln!("Failed to load config from {path}: {e}");
         std::process::exit(1);
     });
+
+    // Override port from PORT env var (Railway sets this)
+    if let Ok(port_str) = std::env::var("PORT") {
+        if let Ok(port) = port_str.parse::<u16>() {
+            config.server.port = port;
+        }
+    }
 
     tracing::info!(
         board = %format!("{}x{}", config.game.board_width, config.game.board_height),

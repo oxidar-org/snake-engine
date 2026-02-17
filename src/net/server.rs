@@ -1,6 +1,7 @@
 use std::net::SocketAddr;
 
 use futures_util::{SinkExt, StreamExt};
+use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{broadcast, mpsc};
 use tokio::time::Interval;
@@ -48,6 +49,8 @@ pub async fn run(config: Config) -> anyhow::Result<()> {
 
     let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
 
+    let shutdown = shutdown_signal();
+
     let listen_cmd_tx = cmd_tx.clone();
     let listen_broadcast_tx = broadcast_tx.clone();
     let listen_session_tx = session_mgr_tx.clone();
@@ -59,10 +62,36 @@ pub async fn run(config: Config) -> anyhow::Result<()> {
         }
     });
 
-    // Run the game loop on the current task
-    game_loop(config, cmd_rx, broadcast_tx, session_mgr_rx).await;
+    // Run the game loop until shutdown signal
+    tokio::select! {
+        _ = game_loop(config, cmd_rx, broadcast_tx, session_mgr_rx) => {}
+        _ = shutdown => {
+            info!("shutdown signal received, exiting");
+        }
+    }
 
     Ok(())
+}
+
+/// Wait for SIGTERM or Ctrl+C.
+async fn shutdown_signal() {
+    let ctrl_c = tokio::signal::ctrl_c();
+
+    #[cfg(unix)]
+    {
+        let mut sigterm =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                .expect("failed to register SIGTERM handler");
+        tokio::select! {
+            _ = ctrl_c => {}
+            _ = sigterm.recv() => {}
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        ctrl_c.await.ok();
+    }
 }
 
 /// The main game loop: processes commands, ticks, and broadcasts.
@@ -193,6 +222,19 @@ async fn listen(
 
     loop {
         let (stream, peer) = listener.accept().await?;
+
+        // Peek at the first bytes to detect health check requests
+        let mut buf = [0u8; 11];
+        let n = stream.peek(&mut buf).await?;
+        if n >= 11 && &buf[..11] == b"GET /health" {
+            tokio::spawn(async move {
+                if let Err(e) = handle_health_check(stream).await {
+                    warn!(%peer, error = %e, "health check error");
+                }
+            });
+            continue;
+        }
+
         info!(%peer, "new connection");
 
         let cmd_tx = cmd_tx.clone();
@@ -207,6 +249,18 @@ async fn listen(
             }
         });
     }
+}
+
+/// Respond to an HTTP health check with 200 OK.
+async fn handle_health_check(mut stream: TcpStream) -> anyhow::Result<()> {
+    // Drain the request (read until we've consumed the peeked data)
+    let mut buf = [0u8; 1024];
+    let _ = tokio::io::AsyncReadExt::read(&mut stream, &mut buf).await?;
+
+    let response = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
+    stream.write_all(response.as_bytes()).await?;
+    stream.shutdown().await?;
+    Ok(())
 }
 
 async fn handle_connection(

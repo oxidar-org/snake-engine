@@ -190,7 +190,7 @@ oxidar-snake/
 | Field               | Value       |
 |---------------------|-------------|
 | Current session     | 3           |
-| Last completed task | 6.1         |
+| Last completed task | 6.2         |
 | Status              | In Progress |
 
 ---
@@ -442,7 +442,7 @@ oxidar-snake/
   - **Unit tests**: None (Docker build verification)
   - Commit: `feat: add multi-stage Dockerfile for build and runtime`
 
-- [ ] **Task 6.2**: Add health check endpoint, PORT env var support, and graceful shutdown
+- [x] **Task 6.2**: Add health check endpoint, PORT env var support, and graceful shutdown
   - Add a `GET /health` HTTP endpoint that returns `200 OK` (use the existing `tokio-tungstenite` listener or add a lightweight handler on the same port)
   - Read port from `PORT` env var with fallback to `config.toml` value (`std::env::var("PORT")`)
   - Handle `SIGTERM` for graceful shutdown: stop accepting new connections, let in-flight games drain, then exit (`tokio::signal::unix::signal(SignalKind::terminate())`)

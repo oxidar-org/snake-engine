@@ -224,3 +224,32 @@ async fn spectator_receives_state_without_joining() {
 
     ws.close(None).await.ok();
 }
+
+#[tokio::test]
+async fn health_endpoint_returns_200() {
+    let port = free_port().await;
+    let config = test_config(port);
+
+    tokio::spawn(oxidar_snake::net::server::run(config));
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    // Send a plain HTTP GET /health request
+    let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{port}"))
+        .await
+        .expect("tcp connect");
+    tokio::io::AsyncWriteExt::write_all(
+        &mut stream,
+        b"GET /health HTTP/1.1\r\nHost: localhost\r\n\r\n",
+    )
+    .await
+    .expect("write request");
+
+    let mut buf = vec![0u8; 1024];
+    let n = tokio::io::AsyncReadExt::read(&mut stream, &mut buf)
+        .await
+        .expect("read response");
+    let response = std::str::from_utf8(&buf[..n]).expect("valid utf-8");
+
+    assert!(response.starts_with("HTTP/1.1 200 OK"), "got: {response}");
+    assert!(response.ends_with("ok"), "body should be 'ok', got: {response}");
+}
