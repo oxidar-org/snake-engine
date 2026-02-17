@@ -189,8 +189,8 @@ oxidar-snake/
 
 | Field               | Value       |
 |---------------------|-------------|
-| Current session     | 1           |
-| Last completed task | 4.4         |
+| Current session     | 2           |
+| Last completed task | 5.1         |
 | Status              | Complete    |
 
 ---
@@ -405,6 +405,23 @@ oxidar-snake/
     - Connect spectator (no join) → receives state
   - **Unit tests**: N/A (this is the integration test)
   - Commit: `test: add end-to-end integration test`
+
+### Phase 5: Documentation
+
+- [x] **Task 5.1**: Write client developer README
+  - Create `README.md` targeted at session attendees building their own clients
+  - Content:
+    - Brief project overview (what the server is, what attendees will build)
+    - How to run the server (`cargo run`, config options)
+    - Connection details (WebSocket URL, binary frames, MessagePack)
+    - Full protocol reference: all client→server and server→client messages with field descriptions
+    - Direction encoding (0=Up, 1=Right, 2=Down, 3=Left)
+    - Game rules summary (board size, wrapping, food, crowns, no death)
+    - Reconnection behavior
+    - Spectator mode
+    - Quick-start example flow (connect → join → receive state → send turns)
+    - Tips for common languages/libraries (Python, JS/TS, Rust) for WebSocket + MessagePack
+  - Commit: `docs: add client developer README for session attendees`
 
 ---
 
