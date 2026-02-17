@@ -191,7 +191,7 @@ oxidar-snake/
 |---------------------|-------------|
 | Current session     | 3           |
 | Last completed task | 6.3         |
-| Status              | In Progress |
+| Status              | Complete    |
 
 ---
 
