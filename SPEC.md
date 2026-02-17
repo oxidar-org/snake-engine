@@ -190,7 +190,7 @@ oxidar-snake/
 | Field               | Value       |
 |---------------------|-------------|
 | Current session     | 3           |
-| Last completed task | 6.2         |
+| Last completed task | 6.3         |
 | Status              | In Progress |
 
 ---
@@ -449,7 +449,7 @@ oxidar-snake/
   - **Unit tests**: Test that the health endpoint responds with 200
   - Commit: `feat: add health check, PORT env var, and graceful shutdown`
 
-- [ ] **Task 6.3**: Deploy to Railway
+- [x] **Task 6.3**: Deploy to Railway
   - Create a Railway project linked to the repository
   - Configure Railway to build using the Dockerfile from Task 6.1
   - Railway's `PORT` env var is read automatically by the app (Task 6.2)
