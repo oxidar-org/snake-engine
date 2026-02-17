@@ -25,6 +25,12 @@ pub struct GameConfig {
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,
+    #[serde(default = "default_health_port")]
+    pub health_port: u16,
+}
+
+fn default_health_port() -> u16 {
+    9002
 }
 
 impl Config {
@@ -57,6 +63,7 @@ leaderboard_interval_ticks = 25
 [server]
 host = "0.0.0.0"
 port = 9001
+health_port = 9002
 "#;
 
     #[test]
@@ -73,5 +80,6 @@ port = 9001
         assert_eq!(config.game.leaderboard_interval_ticks, 25);
         assert_eq!(config.server.host, "0.0.0.0");
         assert_eq!(config.server.port, 9001);
+        assert_eq!(config.server.health_port, 9002);
     }
 }

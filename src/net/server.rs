@@ -48,6 +48,8 @@ pub async fn run(config: Config) -> anyhow::Result<()> {
     let (session_mgr_tx, session_mgr_rx) = mpsc::channel(64);
 
     let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
+    let health_addr: SocketAddr =
+        format!("{}:{}", config.server.host, config.server.health_port).parse()?;
 
     let shutdown = shutdown_signal();
 
@@ -55,10 +57,17 @@ pub async fn run(config: Config) -> anyhow::Result<()> {
     let listen_broadcast_tx = broadcast_tx.clone();
     let listen_session_tx = session_mgr_tx.clone();
 
-    // Spawn the listener
+    // Spawn the WebSocket listener
     tokio::spawn(async move {
         if let Err(e) = listen(addr, listen_cmd_tx, listen_broadcast_tx, listen_session_tx).await {
             tracing::error!(error = %e, "listener failed");
+        }
+    });
+
+    // Spawn the health check listener
+    tokio::spawn(async move {
+        if let Err(e) = listen_health(health_addr).await {
+            tracing::error!(error = %e, "health listener failed");
         }
     });
 
@@ -222,19 +231,6 @@ async fn listen(
 
     loop {
         let (stream, peer) = listener.accept().await?;
-
-        // Peek at the first bytes to detect health check requests
-        let mut buf = [0u8; 11];
-        let n = stream.peek(&mut buf).await?;
-        if n >= 11 && &buf[..11] == b"GET /health" {
-            tokio::spawn(async move {
-                if let Err(e) = handle_health_check(stream).await {
-                    warn!(%peer, error = %e, "health check error");
-                }
-            });
-            continue;
-        }
-
         info!(%peer, "new connection");
 
         let cmd_tx = cmd_tx.clone();
@@ -251,16 +247,23 @@ async fn listen(
     }
 }
 
-/// Respond to an HTTP health check with 200 OK.
-async fn handle_health_check(mut stream: TcpStream) -> anyhow::Result<()> {
-    // Drain the request (read until we've consumed the peeked data)
-    let mut buf = [0u8; 1024];
-    let _ = tokio::io::AsyncReadExt::read(&mut stream, &mut buf).await?;
+/// Listen for HTTP health check requests on a dedicated port.
+async fn listen_health(addr: SocketAddr) -> anyhow::Result<()> {
+    let listener = TcpListener::bind(addr).await?;
+    info!(%addr, "health check listener started");
 
-    let response = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
-    stream.write_all(response.as_bytes()).await?;
-    stream.shutdown().await?;
-    Ok(())
+    loop {
+        let (mut stream, _) = listener.accept().await?;
+        tokio::spawn(async move {
+            // Drain the incoming request
+            let mut buf = [0u8; 1024];
+            let _ = tokio::io::AsyncReadExt::read(&mut stream, &mut buf).await;
+
+            let response = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
+            let _ = stream.write_all(response.as_bytes()).await;
+            let _ = stream.shutdown().await;
+        });
+    }
 }
 
 async fn handle_connection(

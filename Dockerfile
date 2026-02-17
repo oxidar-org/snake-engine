@@ -14,8 +14,8 @@ RUN apt-get update \
 COPY --from=builder /app/target/release/oxidar-snake /usr/local/bin/oxidar-snake
 COPY config.toml /etc/oxidar-snake/config.toml
 
-EXPOSE 9001
+EXPOSE 9001 9002
 
-HEALTHCHECK CMD curl -f http://localhost:9001/health || exit 1
+HEALTHCHECK CMD curl -f http://localhost:9002/health || exit 1
 
 ENTRYPOINT ["oxidar-snake", "/etc/oxidar-snake/config.toml"]

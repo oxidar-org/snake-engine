@@ -26,6 +26,7 @@ async fn main() -> anyhow::Result<()> {
         tick_ms = config.game.tick_ms,
         host = %config.server.host,
         port = config.server.port,
+        health_port = config.server.health_port,
         "Configuration loaded"
     );
 

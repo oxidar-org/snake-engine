@@ -6,7 +6,7 @@ use oxidar_snake::net::protocol::ServerMessage;
 use tokio::time::timeout;
 use tokio_tungstenite::tungstenite::Message;
 
-fn test_config(port: u16) -> Config {
+fn test_config(port: u16, health_port: u16) -> Config {
     Config {
         game: GameConfig {
             board_width: 16,
@@ -21,6 +21,7 @@ fn test_config(port: u16) -> Config {
         server: ServerConfig {
             host: "127.0.0.1".into(),
             port,
+            health_port,
         },
     }
 }
@@ -99,7 +100,8 @@ async fn free_port() -> u16 {
 #[tokio::test]
 async fn two_players_join_move_disconnect_reconnect() {
     let port = free_port().await;
-    let config = test_config(port);
+    let health_port = free_port().await;
+    let config = test_config(port, health_port);
 
     // Start server in background
     tokio::spawn(oxidar_snake::net::server::run(config));
@@ -210,7 +212,8 @@ async fn two_players_join_move_disconnect_reconnect() {
 #[tokio::test]
 async fn spectator_receives_state_without_joining() {
     let port = free_port().await;
-    let config = test_config(port);
+    let health_port = free_port().await;
+    let config = test_config(port, health_port);
 
     tokio::spawn(oxidar_snake::net::server::run(config));
     tokio::time::sleep(Duration::from_millis(100)).await;
@@ -228,13 +231,14 @@ async fn spectator_receives_state_without_joining() {
 #[tokio::test]
 async fn health_endpoint_returns_200() {
     let port = free_port().await;
-    let config = test_config(port);
+    let health_port = free_port().await;
+    let config = test_config(port, health_port);
 
     tokio::spawn(oxidar_snake::net::server::run(config));
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    // Send a plain HTTP GET /health request
-    let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{port}"))
+    // Send a plain HTTP GET /health request to the dedicated health port
+    let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{health_port}"))
         .await
         .expect("tcp connect");
     tokio::io::AsyncWriteExt::write_all(

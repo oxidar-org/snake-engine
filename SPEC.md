@@ -435,16 +435,16 @@ oxidar-snake/
       - Install minimal runtime dependencies (`ca-certificates`, `curl` for health checks)
       - Copy compiled binary from builder stage
       - Copy `config.toml` as default config
-      - Expose port 9001
-      - Add `HEALTHCHECK CMD curl -f http://localhost:9001/health || exit 1`
+      - Expose ports 9001 (WebSocket) and 9002 (health check)
+      - Add `HEALTHCHECK CMD curl -f http://localhost:9002/health || exit 1`
       - Set entrypoint to the binary
   - Create `.dockerignore` (target/, .git/, *.md, tests/)
   - **Unit tests**: None (Docker build verification)
   - Commit: `feat: add multi-stage Dockerfile for build and runtime`
 
 - [x] **Task 6.2**: Add health check endpoint, PORT env var support, and graceful shutdown
-  - Add a `GET /health` HTTP endpoint that returns `200 OK` (use the existing `tokio-tungstenite` listener or add a lightweight handler on the same port)
-  - Read port from `PORT` env var with fallback to `config.toml` value (`std::env::var("PORT")`)
+  - Add a `GET /health` HTTP endpoint on a **dedicated health port** (default 9002, configured via `health_port` in `config.toml`) — separate from the WebSocket port to keep concerns cleanly separated
+  - Read WebSocket port from `PORT` env var with fallback to `config.toml` value (`std::env::var("PORT")`)
   - Handle `SIGTERM` for graceful shutdown: stop accepting new connections, let in-flight games drain, then exit (`tokio::signal::unix::signal(SignalKind::terminate())`)
   - **Unit tests**: Test that the health endpoint responds with 200
   - Commit: `feat: add health check, PORT env var, and graceful shutdown`
@@ -560,9 +560,9 @@ oxidar-snake/
 
 ### After Phase 6 (Deployment)
 - Run `docker build -t oxidar-snake .` — should build cleanly
-- Run `docker run -p 9001:9001 oxidar-snake` — server should start and accept connections
+- Run `docker run -p 9001:9001 -p 9002:9002 oxidar-snake` — server should start and accept connections
 - Verify image size is minimal (runtime image based on bookworm-slim)
-- Verify `GET /health` returns 200 on the running container
+- Verify `GET /health` returns 200 on the health port (9002)
 - Verify the server reads `PORT` from env: `PORT=8080 cargo run` should bind to 8080
 - Verify graceful shutdown: send `SIGTERM` to a running server, confirm it exits cleanly
 - Verify Railway deployment succeeds (check build and deploy logs)
