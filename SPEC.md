@@ -189,9 +189,9 @@ oxidar-snake/
 
 | Field               | Value       |
 |---------------------|-------------|
-| Current session     | 2           |
-| Last completed task | 5.1         |
-| Status              | Complete    |
+| Current session     | 3           |
+| Last completed task | 6.1         |
+| Status              | In Progress |
 
 ---
 
@@ -423,6 +423,42 @@ oxidar-snake/
     - Tips for common languages/libraries (Python, JS/TS, Rust) for WebSocket + MessagePack
   - Commit: `docs: add client developer README for session attendees`
 
+### Phase 6: Deployment
+
+- [x] **Task 6.1**: Add Dockerfile with multi-stage build
+  - Create `Dockerfile` with two stages:
+    - **Builder**: `rust:1.93.1-slim-bullseye`
+      - Install build dependencies
+      - Copy `Cargo.toml`, `Cargo.lock`, and `src/`
+      - Build release binary with `cargo build --release`
+    - **Runtime**: `debian:bookworm-slim`
+      - Install minimal runtime dependencies (`ca-certificates`, `curl` for health checks)
+      - Copy compiled binary from builder stage
+      - Copy `config.toml` as default config
+      - Expose port 9001
+      - Add `HEALTHCHECK CMD curl -f http://localhost:9001/health || exit 1`
+      - Set entrypoint to the binary
+  - Create `.dockerignore` (target/, .git/, *.md, tests/)
+  - **Unit tests**: None (Docker build verification)
+  - Commit: `feat: add multi-stage Dockerfile for build and runtime`
+
+- [ ] **Task 6.2**: Add health check endpoint, PORT env var support, and graceful shutdown
+  - Add a `GET /health` HTTP endpoint that returns `200 OK` (use the existing `tokio-tungstenite` listener or add a lightweight handler on the same port)
+  - Read port from `PORT` env var with fallback to `config.toml` value (`std::env::var("PORT")`)
+  - Handle `SIGTERM` for graceful shutdown: stop accepting new connections, let in-flight games drain, then exit (`tokio::signal::unix::signal(SignalKind::terminate())`)
+  - **Unit tests**: Test that the health endpoint responds with 200
+  - Commit: `feat: add health check, PORT env var, and graceful shutdown`
+
+- [ ] **Task 6.3**: Deploy to Railway
+  - Create a Railway project linked to the repository
+  - Configure Railway to build using the Dockerfile from Task 6.1
+  - Railway's `PORT` env var is read automatically by the app (Task 6.2)
+  - Generate a public Railway domain for WebSocket access
+  - Verify the deployed service starts and accepts WebSocket connections
+  - Verify `/health` endpoint responds through the Railway domain
+  - **Unit tests**: None (deployment verification)
+  - Commit: `feat: add Railway deployment configuration`
+
 ---
 
 ## Implementation Notes
@@ -521,6 +557,17 @@ oxidar-snake/
 - Test error cases (bad input, duplicate username, capacity)
 - Verify git log has 4 new commits
 - **Total: 14 commits across 14 tasks**
+
+### After Phase 6 (Deployment)
+- Run `docker build -t oxidar-snake .` — should build cleanly
+- Run `docker run -p 9001:9001 oxidar-snake` — server should start and accept connections
+- Verify image size is minimal (runtime image based on bookworm-slim)
+- Verify `GET /health` returns 200 on the running container
+- Verify the server reads `PORT` from env: `PORT=8080 cargo run` should bind to 8080
+- Verify graceful shutdown: send `SIGTERM` to a running server, confirm it exits cleanly
+- Verify Railway deployment succeeds (check build and deploy logs)
+- Connect to the Railway domain via WebSocket — server should accept connections
+- Verify `/health` responds through the Railway domain
 
 ### How to run tests
 ```bash
