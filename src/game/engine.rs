@@ -99,17 +99,21 @@ impl GameEngine {
 
     #[instrument(skip(self), fields(name = %name))]
     pub fn remove_player(&mut self, name: &str) {
-        if let Some(snake) = self.active.remove(name) {
-            info!("player disconnected");
-            self.disconnected
-                .insert(name.to_string(), (snake, Instant::now()));
-        }
+        let Some(snake) = self.active.remove(name) else {
+            warn!("remove called for unknown player");
+            return;
+        };
+        info!("player disconnected");
+        self.disconnected
+            .insert(name.to_string(), (snake, Instant::now()));
     }
 
     pub fn queue_turn(&mut self, name: &str, dir: Direction) {
-        if let Some(snake) = self.active.get_mut(name) {
-            snake.queue_turn(dir);
-        }
+        let Some(snake) = self.active.get_mut(name) else {
+            warn!(name = %name, "turn queued for unknown player");
+            return;
+        };
+        snake.queue_turn(dir);
     }
 
     #[instrument(skip(self))]

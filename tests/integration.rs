@@ -156,10 +156,10 @@ async fn two_players_join_move_disconnect_reconnect() {
     let state = timeout(Duration::from_secs(3), async {
         loop {
             let msg = recv_state(&mut ws2).await;
-            if let ServerMessage::State { ref snakes, .. } = msg {
-                if snakes.len() == 1 {
-                    return msg;
-                }
+            if let ServerMessage::State { ref snakes, .. } = msg
+                && snakes.len() == 1
+            {
+                return msg;
             }
         }
     })
@@ -182,10 +182,10 @@ async fn two_players_join_move_disconnect_reconnect() {
     let state = timeout(Duration::from_secs(3), async {
         loop {
             let msg = recv_state(&mut ws2).await;
-            if let ServerMessage::State { ref snakes, .. } = msg {
-                if snakes.len() == 2 {
-                    return msg;
-                }
+            if let ServerMessage::State { ref snakes, .. } = msg
+                && snakes.len() == 2
+            {
+                return msg;
             }
         }
     })

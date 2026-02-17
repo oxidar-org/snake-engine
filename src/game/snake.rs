@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
 use serde::{Deserialize, Serialize};
+use tracing::trace;
 
 use super::board::{Board, Position};
 
@@ -81,9 +82,11 @@ impl Snake {
     }
 
     pub fn queue_turn(&mut self, dir: Direction) {
-        if dir != self.dir.opposite() {
-            self.next_dir = Some(dir);
+        if dir == self.dir.opposite() {
+            trace!(name = %self.name, current = ?self.dir, requested = ?dir, "reversal ignored");
+            return;
         }
+        self.next_dir = Some(dir);
     }
 
     pub fn apply_turn(&mut self) {

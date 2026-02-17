@@ -154,10 +154,9 @@ async fn game_loop(
                         }
                     }
                     Command::Disconnect { session } => {
-                        if let Some(Session::Player { username }) = session_mgr.disconnect(session) {
+                        let prev = session_mgr.disconnect(session);
+                        if let Some(Session::Player { username }) = prev {
                             engine.remove_player(&username);
-                        } else {
-                            session_mgr.disconnect(session);
                         }
                     }
                 }

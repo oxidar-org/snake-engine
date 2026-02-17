@@ -33,16 +33,15 @@ impl Config {
         let config: Config = toml::from_str(&content)?;
         Ok(config)
     }
-
-    #[cfg(test)]
-    pub fn from_str(s: &str) -> Result<Config, toml::de::Error> {
-        toml::from_str(s)
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn from_str(s: &str) -> Result<Config, toml::de::Error> {
+        toml::from_str(s)
+    }
 
     const VALID_TOML: &str = r#"
 [game]
@@ -62,7 +61,7 @@ port = 9001
 
     #[test]
     fn load_valid_config() {
-        let config = Config::from_str(VALID_TOML).unwrap();
+        let config = from_str(VALID_TOML).unwrap();
 
         assert_eq!(config.game.board_width, 64);
         assert_eq!(config.game.board_height, 32);
