@@ -14,10 +14,10 @@ async fn main() -> anyhow::Result<()> {
     });
 
     // Override port from PORT env var (Railway sets this)
-    if let Ok(port_str) = std::env::var("PORT") {
-        if let Ok(port) = port_str.parse::<u16>() {
-            config.server.port = port;
-        }
+    if let Ok(port_str) = std::env::var("PORT")
+        && let Ok(port) = port_str.parse::<u16>()
+    {
+        config.server.port = port;
     }
 
     tracing::info!(
