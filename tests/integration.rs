@@ -17,6 +17,7 @@ fn test_config(port: u16, health_port: u16) -> Config {
             snake_win_length: 16,
             disconnect_timeout_s: 5,
             leaderboard_interval_ticks: 5,
+            palette: vec!["#FF0000".into(), "#00FF00".into(), "#0000FF".into()],
         },
         server: ServerConfig {
             host: "127.0.0.1".into(),

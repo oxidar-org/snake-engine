@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, bail};
 use serde::Deserialize;
 use std::fs;
 
@@ -19,6 +19,7 @@ pub struct GameConfig {
     pub snake_win_length: u16,
     pub disconnect_timeout_s: u64,
     pub leaderboard_interval_ticks: u64,
+    pub palette: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -37,6 +38,9 @@ impl Config {
     pub fn load(path: &str) -> Result<Config> {
         let content = fs::read_to_string(path)?;
         let config: Config = toml::from_str(&content)?;
+        if config.game.palette.is_empty() {
+            bail!("game.palette must contain at least one color");
+        }
         Ok(config)
     }
 }
@@ -49,7 +53,7 @@ mod tests {
         toml::from_str(s)
     }
 
-    const VALID_TOML: &str = r#"
+    const VALID_TOML: &str = r##"
 [game]
 board_width = 64
 board_height = 32
@@ -59,12 +63,13 @@ snake_start_length = 4
 snake_win_length = 16
 disconnect_timeout_s = 60
 leaderboard_interval_ticks = 25
+palette = ["#FF0000", "#00FF00"]
 
 [server]
 host = "0.0.0.0"
 port = 9001
 health_port = 9002
-"#;
+"##;
 
     #[test]
     fn load_valid_config() {
@@ -78,8 +83,57 @@ health_port = 9002
         assert_eq!(config.game.snake_win_length, 16);
         assert_eq!(config.game.disconnect_timeout_s, 60);
         assert_eq!(config.game.leaderboard_interval_ticks, 25);
+        assert_eq!(config.game.palette, vec!["#FF0000", "#00FF00"]);
         assert_eq!(config.server.host, "0.0.0.0");
         assert_eq!(config.server.port, 9001);
         assert_eq!(config.server.health_port, 9002);
+    }
+
+    #[test]
+    fn missing_palette_fails_deserialization() {
+        let toml = r##"
+[game]
+board_width = 64
+board_height = 32
+max_players = 32
+tick_ms = 200
+snake_start_length = 4
+snake_win_length = 16
+disconnect_timeout_s = 60
+leaderboard_interval_ticks = 25
+
+[server]
+host = "0.0.0.0"
+port = 9001
+"##;
+        assert!(from_str(toml).is_err());
+    }
+
+    #[test]
+    fn empty_palette_fails_validation() {
+        let toml = r##"
+[game]
+board_width = 64
+board_height = 32
+max_players = 32
+tick_ms = 200
+snake_start_length = 4
+snake_win_length = 16
+disconnect_timeout_s = 60
+leaderboard_interval_ticks = 25
+palette = []
+
+[server]
+host = "0.0.0.0"
+port = 9001
+"##;
+        let config: Config = from_str(toml).unwrap();
+        let result = (|| -> anyhow::Result<()> {
+            if config.game.palette.is_empty() {
+                anyhow::bail!("game.palette must contain at least one color");
+            }
+            Ok(())
+        })();
+        assert!(result.is_err());
     }
 }

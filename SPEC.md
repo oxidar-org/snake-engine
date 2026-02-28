@@ -191,7 +191,7 @@ oxidar-snake/
 | Field               | Value       |
 |---------------------|-------------|
 | Current session     | 4           |
-| Last completed task | 7.1         |
+| Last completed task | 7.2         |
 | Status              | Complete    |
 
 ---
@@ -476,6 +476,18 @@ oxidar-snake/
     - Reconnected player retains original color
     - 17th player wraps around and gets palette[0] color
   - Commit: `feat: assign palette colors to snakes on join`
+
+- [x] **Task 7.2**: Load color palette from config
+  - Add `palette: Vec<String>` field to `GameConfig` in `src/config.rs` with a `serde` default returning the same 16-color list currently hardcoded in `engine.rs`
+  - Add `palette` array to `config.toml` with those 16 hex values
+  - Remove the `PALETTE` const from `src/game/engine.rs`
+  - Add `palette: Vec<String>` field to `GameEngine`; populate it from the value passed into `GameEngine::new`
+  - Pass `config.game.palette.clone()` when constructing the engine in `src/net/server.rs`
+  - Update the Configuration section in this spec to document the new `palette` field
+  - **Unit tests**:
+    - Update existing color tests to pass a custom palette into the engine rather than relying on the hardcoded constant
+    - Verify that an engine constructed with a 2-color palette wraps at index 2 instead of 16
+  - Commit: `feat: load color palette from config`
 
 ---
 

@@ -32,7 +32,8 @@ mod tests {
 
     fn test_engine() -> GameEngine {
         let rng = Box::new(StdRng::seed_from_u64(42));
-        GameEngine::new(8, 8, 4, 16, 32, rng)
+        let palette = vec!["#FF0000".into(), "#00FF00".into(), "#0000FF".into()];
+        GameEngine::new(8, 8, 4, 16, 32, rng, palette)
     }
 
     #[test]

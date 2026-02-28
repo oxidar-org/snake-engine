@@ -9,11 +9,6 @@ use tracing::{info, instrument, warn};
 use super::board::{Board, Position};
 use super::snake::{Direction, Snake};
 
-const PALETTE: &[&str] = &[
-    "#FF5733", "#33FF57", "#3357FF", "#FF33A8", "#FFD700", "#00CED1", "#FF8C00", "#8A2BE2",
-    "#00FF7F", "#FF1493", "#1E90FF", "#ADFF2F", "#FF69B4", "#40E0D0", "#FFA500", "#9400D3",
-];
-
 pub struct GameEngine {
     pub board: Board,
     active: HashMap<String, Snake>,
@@ -23,6 +18,7 @@ pub struct GameEngine {
     win_length: u16,
     max_players: u32,
     rng: Box<dyn Rng + Send>,
+    palette: Vec<String>,
     color_index: usize,
 }
 
@@ -57,6 +53,7 @@ impl GameEngine {
         win_length: u16,
         max_players: u32,
         mut rng: Box<dyn Rng + Send>,
+        palette: Vec<String>,
     ) -> GameEngine {
         let board = Board::new(board_width, board_height, rng.as_mut());
         GameEngine {
@@ -68,6 +65,7 @@ impl GameEngine {
             win_length,
             max_players,
             rng,
+            palette,
             color_index: 0,
         }
     }
@@ -93,7 +91,7 @@ impl GameEngine {
             x: self.rng.random_range(0..self.board.width),
             y: self.rng.random_range(0..self.board.height),
         };
-        let color = PALETTE[self.color_index % PALETTE.len()].to_string();
+        let color = self.palette[self.color_index % self.palette.len()].clone();
         self.color_index += 1;
         let snake = Snake::new(
             name.clone(),
@@ -249,9 +247,13 @@ mod tests {
     use rand::SeedableRng;
     use rand::rngs::StdRng;
 
+    fn test_palette() -> Vec<String> {
+        vec!["#FF0000".into(), "#00FF00".into(), "#0000FF".into()]
+    }
+
     fn test_engine() -> GameEngine {
         let rng = Box::new(StdRng::seed_from_u64(42));
-        GameEngine::new(8, 8, 4, 8, 2, rng)
+        GameEngine::new(8, 8, 4, 8, 2, rng, test_palette())
     }
 
     #[test]
@@ -277,7 +279,7 @@ mod tests {
     #[test]
     fn snake_eats_food_grows_and_food_respawns() {
         let rng = Box::new(StdRng::seed_from_u64(42));
-        let mut engine = GameEngine::new(8, 8, 4, 16, 4, rng);
+        let mut engine = GameEngine::new(8, 8, 4, 16, 4, rng, test_palette());
         engine.add_player("alice".into()).unwrap();
 
         // Position snake head on the food
@@ -306,7 +308,7 @@ mod tests {
     #[test]
     fn snake_reaches_win_length_gets_crown_and_resets() {
         let rng = Box::new(StdRng::seed_from_u64(42));
-        let mut engine = GameEngine::new(8, 8, 4, 6, 4, rng);
+        let mut engine = GameEngine::new(8, 8, 4, 6, 4, rng, test_palette());
         engine.add_player("alice".into()).unwrap();
 
         // Manually set snake length to win_length - 1 by growing
@@ -434,15 +436,16 @@ mod tests {
 
     #[test]
     fn color_wraps_around_palette() {
-        // palette has 16 colors; the 17th player should get palette[0]
+        // 2-color palette: the 3rd player should get palette[0] again
         let rng = Box::new(StdRng::seed_from_u64(42));
-        let mut engine = GameEngine::new(8, 8, 4, 8, 32, rng);
-        for i in 0..17 {
-            engine.add_player(format!("player{i}")).unwrap();
-        }
+        let palette = vec!["#AAAAAA".into(), "#BBBBBB".into()];
+        let mut engine = GameEngine::new(8, 8, 4, 8, 4, rng, palette);
+        engine.add_player("player0".into()).unwrap();
+        engine.add_player("player1".into()).unwrap();
+        engine.add_player("player2".into()).unwrap();
         let first_color = engine.active["player0"].color.clone();
-        let seventeenth_color = engine.active["player16"].color.clone();
-        assert_eq!(first_color, seventeenth_color);
+        let third_color = engine.active["player2"].color.clone();
+        assert_eq!(first_color, third_color);
     }
 
     #[test]

@@ -7,6 +7,12 @@ snake_start_length = 4
 snake_win_length = 16
 disconnect_timeout_s = 60
 leaderboard_interval_ticks = 25
+palette = [
+    "#FF5733", "#33FF57", "#3357FF", "#FF33A8",
+    "#FFD700", "#00CED1", "#FF8C00", "#8A2BE2",
+    "#00FF7F", "#FF1493", "#1E90FF", "#ADFF2F",
+    "#FF69B4", "#40E0D0", "#FFA500", "#9400D3",
+]
 
 [server]
 host = "0.0.0.0"

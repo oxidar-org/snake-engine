@@ -120,6 +120,7 @@ async fn game_loop(
         config.game.snake_win_length,
         config.game.max_players,
         rng,
+        config.game.palette.clone(),
     );
     let mut session_mgr = SessionManager::new();
 
