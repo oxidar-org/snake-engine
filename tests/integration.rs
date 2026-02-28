@@ -255,5 +255,8 @@ async fn health_endpoint_returns_200() {
     let response = std::str::from_utf8(&buf[..n]).expect("valid utf-8");
 
     assert!(response.starts_with("HTTP/1.1 200 OK"), "got: {response}");
-    assert!(response.ends_with("ok"), "body should be 'ok', got: {response}");
+    assert!(
+        response.ends_with("ok"),
+        "body should be 'ok', got: {response}"
+    );
 }
