@@ -36,6 +36,7 @@ pub struct SnakeData {
     pub body: Vec<[u16; 2]>,
     pub dir: u8,
     pub crowns: u32,
+    pub color: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -80,6 +81,7 @@ impl From<&SnakeState> for SnakeData {
             body: s.body.iter().map(|p| [p.x, p.y]).collect(),
             dir: s.dir as u8,
             crowns: s.crowns,
+            color: s.color.clone(),
         }
     }
 }
@@ -98,6 +100,7 @@ mod tests {
                 body: vec![[1, 2], [1, 3]],
                 dir: 0,
                 crowns: 1,
+                color: "#FF5733".into(),
             }],
         };
         let bytes = encode(&msg);
@@ -116,6 +119,7 @@ mod tests {
                 assert_eq!(snakes.len(), 1);
                 assert_eq!(snakes[0].name, "alice");
                 assert_eq!(snakes[0].crowns, 1);
+                assert_eq!(snakes[0].color, "#FF5733");
             }
             _ => panic!("expected State"),
         }

@@ -9,6 +9,11 @@ use tracing::{info, instrument, warn};
 use super::board::{Board, Position};
 use super::snake::{Direction, Snake};
 
+const PALETTE: &[&str] = &[
+    "#FF5733", "#33FF57", "#3357FF", "#FF33A8", "#FFD700", "#00CED1", "#FF8C00", "#8A2BE2",
+    "#00FF7F", "#FF1493", "#1E90FF", "#ADFF2F", "#FF69B4", "#40E0D0", "#FFA500", "#9400D3",
+];
+
 pub struct GameEngine {
     pub board: Board,
     active: HashMap<String, Snake>,
@@ -18,6 +23,7 @@ pub struct GameEngine {
     win_length: u16,
     max_players: u32,
     rng: Box<dyn Rng + Send>,
+    color_index: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -34,6 +40,7 @@ pub struct SnakeState {
     pub body: Vec<Position>,
     pub dir: Direction,
     pub crowns: u32,
+    pub color: String,
 }
 
 #[derive(Debug, Clone)]
@@ -61,6 +68,7 @@ impl GameEngine {
             win_length,
             max_players,
             rng,
+            color_index: 0,
         }
     }
 
@@ -85,11 +93,14 @@ impl GameEngine {
             x: self.rng.random_range(0..self.board.width),
             y: self.rng.random_range(0..self.board.height),
         };
+        let color = PALETTE[self.color_index % PALETTE.len()].to_string();
+        self.color_index += 1;
         let snake = Snake::new(
             name.clone(),
             start_pos,
             Direction::Right,
             self.start_length,
+            color,
             &self.board,
         );
         info!("player joined");
@@ -163,7 +174,8 @@ impl GameEngine {
                 let new_crowns = snake.crowns;
                 info!(name = %name, crowns = new_crowns, "crown awarded");
 
-                // Reset snake
+                // Reset snake, preserving color
+                let color = snake.color.clone();
                 let start_pos = Position {
                     x: self.rng.random_range(0..self.board.width),
                     y: self.rng.random_range(0..self.board.height),
@@ -173,6 +185,7 @@ impl GameEngine {
                     start_pos,
                     Direction::Right,
                     self.start_length,
+                    color,
                     &self.board,
                 );
                 snake.crowns = new_crowns;
@@ -193,6 +206,7 @@ impl GameEngine {
                 body: s.body.iter().copied().collect(),
                 dir: s.dir,
                 crowns: s.crowns,
+                color: s.color.clone(),
             })
             .collect();
 
@@ -396,6 +410,39 @@ mod tests {
         engine.add_player("alice".into()).unwrap();
         let result = engine.add_player("alice".into());
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn two_new_players_get_different_colors() {
+        let mut engine = test_engine();
+        engine.add_player("alice".into()).unwrap();
+        engine.add_player("bob".into()).unwrap();
+        let alice_color = engine.active["alice"].color.clone();
+        let bob_color = engine.active["bob"].color.clone();
+        assert_ne!(alice_color, bob_color);
+    }
+
+    #[test]
+    fn reconnected_player_retains_color() {
+        let mut engine = test_engine();
+        engine.add_player("alice".into()).unwrap();
+        let original_color = engine.active["alice"].color.clone();
+        engine.remove_player("alice");
+        engine.add_player("alice".into()).unwrap();
+        assert_eq!(engine.active["alice"].color, original_color);
+    }
+
+    #[test]
+    fn color_wraps_around_palette() {
+        // palette has 16 colors; the 17th player should get palette[0]
+        let rng = Box::new(StdRng::seed_from_u64(42));
+        let mut engine = GameEngine::new(8, 8, 4, 8, 32, rng);
+        for i in 0..17 {
+            engine.add_player(format!("player{i}")).unwrap();
+        }
+        let first_color = engine.active["player0"].color.clone();
+        let seventeenth_color = engine.active["player16"].color.clone();
+        assert_eq!(first_color, seventeenth_color);
     }
 
     #[test]
