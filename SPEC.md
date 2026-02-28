@@ -43,6 +43,7 @@
 - **Crowns**: Count per player, purely for leaderboard
 - **Death**: None — snakes never die
 - **Movement**: Classic snake — always moving, player only changes direction. Cannot reverse (UP↔DOWN, LEFT↔RIGHT)
+- **Color**: Each snake is assigned a color from a fixed palette upon joining. Colors cycle through the palette in join order. Color is preserved on reconnect
 
 ### Connection & Identity
 - **Transport**: WebSocket, binary frames, MessagePack-encoded
@@ -83,7 +84,7 @@ Directions: 0=Up, 1=Right, 2=Down, 3=Left
   "tick": 12345,
   "food": [12, 7],
   "snakes": [
-    { "name": "alice", "body": [[10,5],[10,6],[10,7],[10,8]], "dir": 0, "crowns": 2 }
+    { "name": "alice", "body": [[10,5],[10,6],[10,7],[10,8]], "dir": 0, "crowns": 2, "color": "#FF5733" }
   ]
 }
 ```
@@ -189,8 +190,8 @@ oxidar-snake/
 
 | Field               | Value       |
 |---------------------|-------------|
-| Current session     | 3           |
-| Last completed task | 6.3         |
+| Current session     | 4           |
+| Last completed task | 7.1         |
 | Status              | Complete    |
 
 ---
@@ -293,7 +294,7 @@ oxidar-snake/
       - `Crown { name: String, crowns: u32 }`
       - `Leaderboard { players: Vec<LeaderboardEntry> }`
       - `Error { msg: String }`
-    - `SnakeData`: `name`, `body: Vec<[u16; 2]>`, `dir: u8`, `crowns: u32`
+    - `SnakeData`: `name`, `body: Vec<[u16; 2]>`, `dir: u8`, `crowns: u32`, `color: String` (hex, e.g. `"#FF5733"`)
     - `LeaderboardEntry`: `name`, `crowns`, `length: u16`, `alive: bool`
     - `encode(msg: &ServerMessage) -> Vec<u8>`
     - `decode(bytes: &[u8]) -> Result<ClientMessage>`
@@ -458,6 +459,23 @@ oxidar-snake/
   - Verify `/health` endpoint responds through the Railway domain
   - **Unit tests**: None (deployment verification)
   - Commit: `feat: add Railway deployment configuration`
+
+### Phase 7: Snake Colors
+
+- [x] **Task 7.1**: Assign colors to snakes on join
+  - Define a fixed palette of 16 hex color strings in `src/game/engine.rs` (e.g. `#FF5733`, `#33FF57`, `#3357FF`, ...)
+  - Add `color: String` field to `Snake` struct in `src/game/snake.rs`
+  - Update `Snake::new` to accept a `color: String` parameter
+  - Update `GameEngine` to track a `color_index: usize` counter; on each new snake (non-reconnect), assign `palette[color_index % palette.len()]` and increment
+  - On reconnect, the preserved `Snake` retains its original color — no reassignment
+  - Add `color: String` field to `SnakeState` in `engine.rs`
+  - Add `color: String` field to `SnakeData` in `src/net/protocol.rs`
+  - Propagate color through `TickResult → ServerMessage::State` conversion
+  - **Unit tests**:
+    - Two new players get different colors from the palette
+    - Reconnected player retains original color
+    - 17th player wraps around and gets palette[0] color
+  - Commit: `feat: assign palette colors to snakes on join`
 
 ---
 
