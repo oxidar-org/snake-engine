@@ -84,7 +84,8 @@ Reversals (e.g., turning from Up to Down) are silently ignored. Invalid values o
       "name": "<string>",
       "body": [[<u16>, <u16>], ...],
       "dir": <u8>,
-      "crowns": <u32>
+      "crowns": <u32>,
+      "color": "<string>"
     }
   ]
 }
@@ -97,6 +98,7 @@ Reversals (e.g., turning from Up to Down) are silently ignored. Invalid values o
   - `body`: Array of `[x, y]` positions. The first element is the head.
   - `dir`: Current direction (same encoding as the turn message).
   - `crowns`: Total crowns earned by this player.
+  - `color`: Hex color string assigned to this snake on join (e.g. `"#FF5733"`). Stable for the lifetime of the player's session, including across reconnects. Use this to consistently color each snake in your renderer.
 
 **crown** -- Broadcast when a player earns a crown:
 

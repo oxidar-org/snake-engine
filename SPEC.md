@@ -531,8 +531,9 @@ oxidar-snake/
 3. **Run `cargo fmt`** — format all code
 4. **Run `cargo test`** — all tests must pass
 5. **Run `cargo clippy`** — no warnings
-6. **Commit** with the specified commit message
-7. **Update this SPEC.md**: mark the task as `[x]`, update Session State table
+6. **Update `README.md`** if the task changes the protocol, game rules, or any client-visible behaviour
+7. **Commit** with the specified commit message
+8. **Update this SPEC.md**: mark the task as `[x]`, update Session State table
 
 ### Spec maintenance
 - After completing each task, check off `[x]` the task in this file
