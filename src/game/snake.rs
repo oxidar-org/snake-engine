@@ -52,6 +52,7 @@ pub struct Snake {
     pub next_dir: Option<Direction>,
     pub growing: u32,
     pub color: String,
+    pub country: Option<String>,
 }
 
 impl Snake {
@@ -61,6 +62,7 @@ impl Snake {
         dir: Direction,
         length: u16,
         color: String,
+        country: Option<String>,
         board: &Board,
     ) -> Snake {
         let mut body = VecDeque::with_capacity(length as usize);
@@ -81,6 +83,7 @@ impl Snake {
             next_dir: None,
             growing: 0,
             color,
+            country,
         }
     }
 
@@ -148,6 +151,7 @@ mod tests {
             Direction::Right,
             4,
             "#FF5733".into(),
+            None,
             &board,
         );
         let original_len = snake.len();
@@ -165,6 +169,7 @@ mod tests {
             Direction::Right,
             4,
             "#FF5733".into(),
+            None,
             &board,
         );
         snake.grow();
@@ -181,6 +186,7 @@ mod tests {
             Direction::Right,
             4,
             "#FF5733".into(),
+            None,
             &board,
         );
         snake.queue_turn(Direction::Left);
@@ -197,6 +203,7 @@ mod tests {
             Direction::Right,
             4,
             "#FF5733".into(),
+            None,
             &board,
         );
         snake.queue_turn(Direction::Up);
@@ -215,6 +222,7 @@ mod tests {
             Direction::Left,
             4,
             "#FF5733".into(),
+            None,
             &board,
         );
         snake.advance(&board);

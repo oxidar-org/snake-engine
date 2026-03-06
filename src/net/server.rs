@@ -11,6 +11,7 @@ use tracing::{debug, info, warn};
 use crate::config::Config;
 use crate::game::engine::GameEngine;
 use crate::game::snake::Direction;
+use crate::geo;
 use crate::leaderboard;
 
 use super::protocol::{self, ClientMessage, ServerMessage};
@@ -22,6 +23,7 @@ pub enum Command {
     Join {
         session: SessionId,
         username: String,
+        country: Option<String>,
         reply: mpsc::Sender<ServerMessage>,
     },
     Turn {
@@ -170,10 +172,10 @@ async fn game_loop(
 
             Some(cmd) = cmd_rx.recv() => {
                 match cmd {
-                    Command::Join { session, username, reply } => {
+                    Command::Join { session, username, country, reply } => {
                         match session_mgr.promote(session, username.clone()) {
                             Ok(()) => {
-                                if let Err(e) = engine.add_player(username) {
+                                if let Err(e) = engine.add_player(username, country) {
                                     let _ = reply.send(ServerMessage::Error { msg: e.to_string() }).await;
                                 }
                             }
@@ -273,6 +275,7 @@ async fn handle_connection(
     broadcast_tx: broadcast::Sender<Vec<u8>>,
     session_mgr_tx: mpsc::Sender<SessionMgrOp>,
 ) -> anyhow::Result<()> {
+    let country = geo::lookup_country(&peer.ip().to_string()).await;
     let ws = tokio_tungstenite::accept_async(stream).await?;
     let (mut ws_sink, mut ws_stream) = ws.split();
 
@@ -350,6 +353,7 @@ async fn handle_connection(
                         .send(Command::Join {
                             session: session_id,
                             username,
+                            country: country.clone(),
                             reply: direct_tx.clone(),
                         })
                         .await;

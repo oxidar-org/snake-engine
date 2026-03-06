@@ -37,6 +37,7 @@ pub struct SnakeData {
     pub dir: u8,
     pub crowns: u32,
     pub color: String,
+    pub country: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,6 +46,7 @@ pub struct LeaderboardEntry {
     pub crowns: u32,
     pub length: u16,
     pub alive: bool,
+    pub country: Option<String>,
 }
 
 pub fn encode(msg: &ServerMessage) -> Vec<u8> {
@@ -82,6 +84,7 @@ impl From<&SnakeState> for SnakeData {
             dir: s.dir as u8,
             crowns: s.crowns,
             color: s.color.clone(),
+            country: s.country.clone(),
         }
     }
 }
@@ -101,6 +104,7 @@ mod tests {
                 dir: 0,
                 crowns: 1,
                 color: "#FF5733".into(),
+                country: Some("AR".into()),
             }],
         };
         let bytes = encode(&msg);
@@ -120,6 +124,7 @@ mod tests {
                 assert_eq!(snakes[0].name, "alice");
                 assert_eq!(snakes[0].crowns, 1);
                 assert_eq!(snakes[0].color, "#FF5733");
+                assert_eq!(snakes[0].country, Some("AR".into()));
             }
             _ => panic!("expected State"),
         }

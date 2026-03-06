@@ -37,6 +37,7 @@ pub struct SnakeState {
     pub dir: Direction,
     pub crowns: u32,
     pub color: String,
+    pub country: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -71,7 +72,7 @@ impl GameEngine {
     }
 
     #[instrument(skip(self), fields(name = %name))]
-    pub fn add_player(&mut self, name: String) -> Result<()> {
+    pub fn add_player(&mut self, name: String, country: Option<String>) -> Result<()> {
         if self.active.contains_key(&name) {
             bail!("username already connected");
         }
@@ -99,6 +100,7 @@ impl GameEngine {
             Direction::Right,
             self.start_length,
             color,
+            country,
             &self.board,
         );
         info!("player joined");
@@ -172,8 +174,9 @@ impl GameEngine {
                 let new_crowns = snake.crowns;
                 info!(name = %name, crowns = new_crowns, "crown awarded");
 
-                // Reset snake, preserving color
+                // Reset snake, preserving color and country
                 let color = snake.color.clone();
+                let country = snake.country.clone();
                 let start_pos = Position {
                     x: self.rng.random_range(0..self.board.width),
                     y: self.rng.random_range(0..self.board.height),
@@ -184,6 +187,7 @@ impl GameEngine {
                     Direction::Right,
                     self.start_length,
                     color,
+                    country,
                     &self.board,
                 );
                 snake.crowns = new_crowns;
@@ -205,6 +209,7 @@ impl GameEngine {
                 dir: s.dir,
                 crowns: s.crowns,
                 color: s.color.clone(),
+                country: s.country.clone(),
             })
             .collect();
 
@@ -259,8 +264,8 @@ mod tests {
     #[test]
     fn add_two_players_tick_both_move() {
         let mut engine = test_engine();
-        engine.add_player("alice".into()).unwrap();
-        engine.add_player("bob".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
+        engine.add_player("bob".into(), None).unwrap();
 
         let r1 = engine.tick();
         assert_eq!(r1.snakes.len(), 2);
@@ -280,7 +285,7 @@ mod tests {
     fn snake_eats_food_grows_and_food_respawns() {
         let rng = Box::new(StdRng::seed_from_u64(42));
         let mut engine = GameEngine::new(8, 8, 4, 16, 4, rng, test_palette());
-        engine.add_player("alice".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
 
         // Position snake head on the food
         let food = engine.board.food();
@@ -309,7 +314,7 @@ mod tests {
     fn snake_reaches_win_length_gets_crown_and_resets() {
         let rng = Box::new(StdRng::seed_from_u64(42));
         let mut engine = GameEngine::new(8, 8, 4, 6, 4, rng, test_palette());
-        engine.add_player("alice".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
 
         // Manually set snake length to win_length - 1 by growing
         let snake = engine.active.get_mut("alice").unwrap();
@@ -331,7 +336,7 @@ mod tests {
     #[test]
     fn remove_player_reconnect_preserves_state() {
         let mut engine = test_engine();
-        engine.add_player("alice".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
         engine.tick();
 
         let head_before = engine.active["alice"].head();
@@ -341,7 +346,7 @@ mod tests {
         assert!(!engine.active.contains_key("alice"));
         assert!(engine.disconnected.contains_key("alice"));
 
-        engine.add_player("alice".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
         assert!(engine.active.contains_key("alice"));
         assert!(!engine.disconnected.contains_key("alice"));
         assert_eq!(engine.active["alice"].head(), head_before);
@@ -351,16 +356,16 @@ mod tests {
     #[test]
     fn add_player_at_max_capacity_errors() {
         let mut engine = test_engine(); // max_players = 2
-        engine.add_player("alice".into()).unwrap();
-        engine.add_player("bob".into()).unwrap();
-        let result = engine.add_player("charlie".into());
+        engine.add_player("alice".into(), None).unwrap();
+        engine.add_player("bob".into(), None).unwrap();
+        let result = engine.add_player("charlie".into(), None);
         assert!(result.is_err());
     }
 
     #[test]
     fn purge_stale_removes_expired() {
         let mut engine = test_engine();
-        engine.add_player("alice".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
         engine.remove_player("alice");
 
         // Insert with an old timestamp
@@ -378,14 +383,14 @@ mod tests {
     #[test]
     fn reconnected_snake_resumes_moving() {
         let mut engine = test_engine();
-        engine.add_player("alice".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
         engine.tick();
 
         let head_before_disconnect = engine.active["alice"].head();
         let dir_before = engine.active["alice"].dir;
 
         engine.remove_player("alice");
-        engine.add_player("alice".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
 
         // Snake should move on the very next tick
         let result = engine.tick();
@@ -397,9 +402,9 @@ mod tests {
     #[test]
     fn no_duplicate_after_reconnect() {
         let mut engine = test_engine();
-        engine.add_player("alice".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
         engine.remove_player("alice");
-        engine.add_player("alice".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
 
         let result = engine.tick();
         let alice_count = result.snakes.iter().filter(|s| s.name == "alice").count();
@@ -409,16 +414,16 @@ mod tests {
     #[test]
     fn duplicate_username_while_connected_errors() {
         let mut engine = test_engine();
-        engine.add_player("alice".into()).unwrap();
-        let result = engine.add_player("alice".into());
+        engine.add_player("alice".into(), None).unwrap();
+        let result = engine.add_player("alice".into(), None);
         assert!(result.is_err());
     }
 
     #[test]
     fn two_new_players_get_different_colors() {
         let mut engine = test_engine();
-        engine.add_player("alice".into()).unwrap();
-        engine.add_player("bob".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
+        engine.add_player("bob".into(), None).unwrap();
         let alice_color = engine.active["alice"].color.clone();
         let bob_color = engine.active["bob"].color.clone();
         assert_ne!(alice_color, bob_color);
@@ -427,10 +432,10 @@ mod tests {
     #[test]
     fn reconnected_player_retains_color() {
         let mut engine = test_engine();
-        engine.add_player("alice".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
         let original_color = engine.active["alice"].color.clone();
         engine.remove_player("alice");
-        engine.add_player("alice".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
         assert_eq!(engine.active["alice"].color, original_color);
     }
 
@@ -440,18 +445,54 @@ mod tests {
         let rng = Box::new(StdRng::seed_from_u64(42));
         let palette = vec!["#AAAAAA".into(), "#BBBBBB".into()];
         let mut engine = GameEngine::new(8, 8, 4, 8, 4, rng, palette);
-        engine.add_player("player0".into()).unwrap();
-        engine.add_player("player1".into()).unwrap();
-        engine.add_player("player2".into()).unwrap();
+        engine.add_player("player0".into(), None).unwrap();
+        engine.add_player("player1".into(), None).unwrap();
+        engine.add_player("player2".into(), None).unwrap();
         let first_color = engine.active["player0"].color.clone();
         let third_color = engine.active["player2"].color.clone();
         assert_eq!(first_color, third_color);
     }
 
     #[test]
+    fn player_country_stored_in_snake_state() {
+        let mut engine = test_engine();
+        engine
+            .add_player("alice".into(), Some("AR".into()))
+            .unwrap();
+        let result = engine.tick();
+        let alice = result.snakes.iter().find(|s| s.name == "alice").unwrap();
+        assert_eq!(alice.country, Some("AR".into()));
+    }
+
+    #[test]
+    fn two_players_different_countries() {
+        let mut engine = test_engine();
+        engine
+            .add_player("alice".into(), Some("AR".into()))
+            .unwrap();
+        engine.add_player("bob".into(), Some("US".into())).unwrap();
+        assert_eq!(engine.active["alice"].country, Some("AR".into()));
+        assert_eq!(engine.active["bob"].country, Some("US".into()));
+    }
+
+    #[test]
+    fn reconnected_player_retains_country() {
+        let mut engine = test_engine();
+        engine
+            .add_player("alice".into(), Some("AR".into()))
+            .unwrap();
+        engine.remove_player("alice");
+        // Reconnect — country should be preserved from disconnected snake
+        engine
+            .add_player("alice".into(), Some("XX".into()))
+            .unwrap();
+        assert_eq!(engine.active["alice"].country, Some("AR".into()));
+    }
+
+    #[test]
     fn reconnect_after_purge_creates_fresh_snake() {
         let mut engine = test_engine();
-        engine.add_player("alice".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
 
         // Grow the snake so we can detect a reset
         engine.active.get_mut("alice").unwrap().growing = 3;
@@ -472,7 +513,7 @@ mod tests {
         engine.purge_stale(60);
 
         // Reconnect — should be a fresh snake at start_length
-        engine.add_player("alice".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
         assert_eq!(engine.active["alice"].len(), 4);
         assert_eq!(engine.active["alice"].crowns, 0);
     }

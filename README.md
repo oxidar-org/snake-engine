@@ -85,7 +85,8 @@ Reversals (e.g., turning from Up to Down) are silently ignored. Invalid values o
       "body": [[<u16>, <u16>], ...],
       "dir": <u8>,
       "crowns": <u32>,
-      "color": "<string>"
+      "color": "<string>",
+      "country": "<string>" | null
     }
   ]
 }
@@ -99,6 +100,7 @@ Reversals (e.g., turning from Up to Down) are silently ignored. Invalid values o
   - `dir`: Current direction (same encoding as the turn message).
   - `crowns`: Total crowns earned by this player.
   - `color`: Hex color string assigned to this snake on join (e.g. `"#FF5733"`). Stable for the lifetime of the player's session, including across reconnects. Use this to consistently color each snake in your renderer.
+  - `country`: ISO 3166-1 alpha-2 country code resolved from the player's IP on connect (e.g. `"AR"`, `"US"`), or `null` if the lookup failed or the player connected from a private/local IP.
 
 **crown** -- Broadcast when a player earns a crown:
 
@@ -123,7 +125,8 @@ Reversals (e.g., turning from Up to Down) are silently ignored. Invalid values o
       "name": "<string>",
       "crowns": <u32>,
       "length": <u16>,
-      "alive": <bool>
+      "alive": <bool>,
+      "country": "<string>" | null
     }
   ]
 }
@@ -132,6 +135,7 @@ Reversals (e.g., turning from Up to Down) are silently ignored. Invalid values o
 - `players`: Sorted by crowns descending, then by length descending.
   - `alive`: `true` if the player is currently connected, `false` if disconnected (within the reconnection window).
   - `length`: Current snake length, or 0 if disconnected.
+  - `country`: ISO 3166-1 alpha-2 country code, or `null`. Same value as in the `state` message.
 
 **error** -- Sent to a single client when something goes wrong:
 

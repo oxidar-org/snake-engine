@@ -7,6 +7,7 @@ pub fn compute(engine: &GameEngine) -> Vec<LeaderboardEntry> {
         crowns: s.crowns,
         length: s.len() as u16,
         alive: true,
+        country: s.country.clone(),
     });
 
     let disconnected = engine
@@ -17,6 +18,7 @@ pub fn compute(engine: &GameEngine) -> Vec<LeaderboardEntry> {
             crowns: s.crowns,
             length: 0,
             alive: false,
+            country: s.country.clone(),
         });
 
     let mut entries: Vec<_> = active.chain(disconnected).collect();
@@ -39,9 +41,9 @@ mod tests {
     #[test]
     fn sorted_by_crowns_descending() {
         let mut engine = test_engine();
-        engine.add_player("alice".into()).unwrap();
-        engine.add_player("bob".into()).unwrap();
-        engine.add_player("charlie".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
+        engine.add_player("bob".into(), None).unwrap();
+        engine.add_player("charlie".into(), None).unwrap();
 
         // Manually set crowns
         engine.active_players_mut().get_mut("alice").unwrap().crowns = 5;
@@ -62,8 +64,8 @@ mod tests {
     #[test]
     fn tie_in_crowns_uses_length_tiebreaker() {
         let mut engine = test_engine();
-        engine.add_player("alice".into()).unwrap();
-        engine.add_player("bob".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
+        engine.add_player("bob".into(), None).unwrap();
 
         engine.active_players_mut().get_mut("alice").unwrap().crowns = 3;
         engine.active_players_mut().get_mut("bob").unwrap().crowns = 3;
@@ -81,8 +83,8 @@ mod tests {
     #[test]
     fn disconnected_shows_alive_false_and_length_zero() {
         let mut engine = test_engine();
-        engine.add_player("alice".into()).unwrap();
-        engine.add_player("bob".into()).unwrap();
+        engine.add_player("alice".into(), None).unwrap();
+        engine.add_player("bob".into(), None).unwrap();
         engine.remove_player("bob");
 
         let lb = compute(&engine);

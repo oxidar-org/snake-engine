@@ -190,9 +190,9 @@ oxidar-snake/
 
 | Field               | Value       |
 |---------------------|-------------|
-| Current session     | 4           |
-| Last completed task | 7.2         |
-| Status              | Complete    |
+| Current session     | 6           |
+| Last completed task | 8.1         |
+| Status              | In progress |
 
 ---
 
@@ -488,6 +488,32 @@ oxidar-snake/
     - Update existing color tests to pass a custom palette into the engine rather than relying on the hardcoded constant
     - Verify that an engine constructed with a 2-color palette wraps at index 2 instead of 16
   - Commit: `feat: load color palette from config`
+
+### Phase 8: Geolocation
+
+- [x] **Task 8.1**: Identify player country on connect
+  - Add `reqwest` (with `json` and `rustls-tls` features, no default features) to `Cargo.toml`
+  - Add an async helper `lookup_country(ip: &str) -> Option<String>` in `src/net/server.rs` (or a new `src/geo.rs`):
+    - Call `http://ip-api.com/json/{ip}?fields=countryCode` — free, no API key required, 45 req/min
+    - On success parse the `countryCode` field (ISO 3166-1 alpha-2, e.g. `"AR"`, `"US"`)
+    - On any error (network, parse, rate limit) return `None` — geolocation is best-effort
+    - Skip lookup (return `None`) for loopback/private IPs (`127.x`, `10.x`, `192.168.x`, `::1`) to avoid noisy errors in local dev
+  - Extract peer IP from the WebSocket `TcpStream` before the upgrade handshake in `src/net/server.rs`
+  - Call `lookup_country` once per new connection; pass the result down to `GameEngine::add_player`
+  - Add `country: Option<String>` field to `Snake` struct in `src/game/snake.rs`
+  - Update `Snake::new` to accept `country: Option<String>`
+  - Update `GameEngine::add_player` signature to accept `country: Option<String>`; pass it to `Snake::new` for new snakes; on reconnect the preserved `Snake` retains its original country — no re-lookup
+  - Add `country: Option<String>` field to `SnakeState` in `src/game/engine.rs`
+  - Add `country: Option<String>` field to `LeaderboardEntry` in `src/net/protocol.rs`
+  - Propagate country through `TickResult → ServerMessage::State` and `Leaderboard` computations
+  - Add tracing: `info!` on successful country resolution, `debug!` when lookup is skipped or fails
+  - Update `README.md`: document `country` field on `LeaderboardEntry` (ISO 3166-1 alpha-2 or `null`)
+  - **Unit tests**:
+    - `lookup_country` skips loopback (`"127.0.0.1"`) and returns `None`
+    - Two new players with different countries appear correctly in `LeaderboardEntry`
+    - Reconnected player retains original country (no re-lookup)
+    - Engine test: add player with `country: Some("AR")` → `SnakeState.country == Some("AR")`
+  - Commit: `feat: resolve player country via IP geolocation on connect`
 
 ---
 
