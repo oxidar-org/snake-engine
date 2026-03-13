@@ -191,7 +191,7 @@ oxidar-snake/
 | Field               | Value       |
 |---------------------|-------------|
 | Current session     | 7           |
-| Last completed task | 9.1         |
+| Last completed task | 9.2         |
 | Status              | In progress |
 | Next task           | —           |
 
@@ -646,6 +646,17 @@ cargo clippy -- -D warnings
 ```
 
 ### Phase 9: Probe Client
+
+- [x] **Task 9.2**: Add TLS support to probe binary for `wss://` URLs
+  - Enable the `rustls-tls-native-roots` feature on `tokio-tungstenite` in `Cargo.toml`:
+    ```toml
+    tokio-tungstenite = { version = "0.28", features = ["rustls-tls-native-roots"] }
+    ```
+    This is consistent with `reqwest` already using `rustls` — no new TLS stack introduced
+  - Update `src/bin/probe.rs` to use `tokio_tungstenite::connect_async` with TLS connector when the URL scheme is `wss://`; `ws://` continues to work as before
+  - Verify manually: `cargo run --bin probe -- wss://snakes.hernan.rs` connects and completes all steps
+  - **Unit tests**: None
+  - Commit: `feat: enable TLS support in probe for wss:// URLs`
 
 - [x] **Task 9.1**: Implement `probe` binary for deployment smoke testing
   - Add `src/bin/probe.rs` — reuses existing `ClientMessage`, `ServerMessage` protocol types and `tokio-tungstenite` (already a dependency)
