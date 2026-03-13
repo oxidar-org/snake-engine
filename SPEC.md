@@ -190,9 +190,10 @@ oxidar-snake/
 
 | Field               | Value       |
 |---------------------|-------------|
-| Current session     | 6           |
-| Last completed task | 8.1         |
+| Current session     | 7           |
+| Last completed task | 9.1         |
 | Status              | In progress |
+| Next task           | —           |
 
 ---
 
@@ -643,6 +644,45 @@ cargo test -- --nocapture
 # Clippy
 cargo clippy -- -D warnings
 ```
+
+### Phase 9: Probe Client
+
+- [x] **Task 9.1**: Implement `probe` binary for deployment smoke testing
+  - Add `src/bin/probe.rs` — reuses existing `ClientMessage`, `ServerMessage` protocol types and `tokio-tungstenite` (already a dependency)
+  - **CLI**: Accept WebSocket URL as a positional argument
+    ```
+    cargo run --bin probe -- wss://snakes.hernan.rs
+    cargo run --bin probe -- ws://localhost:8080
+    ```
+  - **Probe flow** (each step printed as `[N] description... OK / FAIL`):
+    1. Connect to the given URL (WebSocket handshake)
+    2. Join as player with username `"probe"` (send `ClientMessage::Join`)
+    3. Receive state updates until the probe snake (`"probe"`) appears in a `ServerMessage::State` — confirms the server round-trip and game loop are running
+    4. Send 4 `Turn` commands cycling through all directions: Up → Right → Down → Left, with one tick gap between each (wait for a `State` between sends)
+    5. Receive 5 consecutive `State` messages and verify the snake remains present and alive throughout
+    6. Print a brief summary line per received state: `tick=N players=M snake_len=L`
+    7. Send a WebSocket close frame and wait for the server echo — graceful disconnect
+  - **Output format**:
+    ```
+    [1] Connecting to wss://snakes.hernan.rs...     OK
+    [2] Joining as "probe"...                        OK
+    [3] Waiting for own snake in state...            OK  (tick=142, players=3)
+    [4] Sending turn commands...                     OK  (4 turns sent)
+    [5] Receiving 5 state updates...                 OK
+        tick=143 players=3 snake_len=4
+        tick=144 players=3 snake_len=4
+        tick=145 players=3 snake_len=4
+        tick=146 players=3 snake_len=4
+        tick=147 players=3 snake_len=4
+    [6] Disconnecting gracefully...                  OK
+    ✓ All checks passed
+    ```
+  - **Exit codes**: `0` on full success, `1` on any step failure — suitable for use in CI/shell scripts
+  - **Timeout**: Each step has an implicit 10-second timeout; on timeout print `FAIL (timeout)` and exit `1`
+  - **Error output**: On failure, print the failed step and the error detail, then exit immediately
+  - **No new dependencies** — use only crates already in `Cargo.toml`
+  - **Unit tests**: None — the binary is its own end-to-end test. Add a note in `tests/integration.rs` that the probe can be run against the test server as a manual check
+  - Commit: `feat: add probe binary for deployment smoke testing`
 
 ---
 
