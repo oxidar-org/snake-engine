@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { registerTools } from "./tools.js";
 
 const SERVER_NAME = "oxidar-snake-mcp";
 const SERVER_VERSION = "0.1.0";
@@ -10,9 +11,7 @@ function buildServer(): McpServer {
     version: SERVER_VERSION,
   });
 
-  // Tools registered in Phase 10.2:
-  //   get_protocol, get_game_rules, encode_example,
-  //   decode_message, test_connection, get_client_example
+  registerTools(server);
 
   return server;
 }
