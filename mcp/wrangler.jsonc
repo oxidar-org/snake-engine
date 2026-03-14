@@ -1,0 +1,11 @@
+{
+  // Oxidar Snake MCP — Cloudflare Workers deployment config
+  "name": "oxidar-snake-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-03-14",
+  // nodejs_compat gives us Buffer and other Node built-ins required by the MCP SDK
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  }
+}
