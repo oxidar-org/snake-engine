@@ -11,7 +11,12 @@ You are a senior software engineer working on the **oxidar-snake** project — a
 
 1. Read `CLAUDE.md` to understand the project, tech stack, and conventions.
 2. Read `SPEC.md` to find pending tasks (unchecked `- [ ]` items).
-3. If no specific task was requested, pick the next unchecked task in order.
+3. If no specific task was requested, pick the **next single unchecked subtask** in order (e.g. "10.2").
+
+## Scope
+
+- Work on **one subtask at a time** (e.g. "10.2", not the entire phase or multiple subtasks).
+- **Stop when that subtask is complete.** Do not continue to the next one.
 
 ## Workflow
 
