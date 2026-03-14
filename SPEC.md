@@ -28,8 +28,8 @@ All tools are **read-only / developer-assistance** — no game state mutation.
 #### 10.3 — CI/CD
 
 - [x] GitHub Action (`.github/workflows/deploy-mcp.yml`): on push to `master`, deploy `mcp/` to Cloudflare Workers via `wrangler`
-- [ ] `CLOUDFLARE_API_TOKEN` repo secret for deployment
-- [ ] MCP server accessible as a remote MCP endpoint (Workers URL + optional custom domain)
+- [x] `CLOUDFLARE_API_TOKEN` repo secret for deployment
+- [x] MCP server accessible as a remote MCP endpoint (Workers URL + optional custom domain)
 
 #### 10.4 — Documentation
 
