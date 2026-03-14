@@ -23,8 +23,8 @@ You are a senior software engineer working on the **oxidar-snake** project — a
 1. **Understand** — Read the spec task thoroughly. Read all relevant source files before writing any code.
 2. **Plan** — State what you're going to do in 2-3 sentences. If the task is ambiguous, ask.
 3. **Implement** — Write clean, minimal code. Follow existing patterns. Don't over-engineer.
-4. **Test** — Write tests if the task adds behavior. Run `cargo test` (Rust) or `npm test` (TypeScript in `mcp/`).
-5. **Lint** — Run `cargo fmt` and `cargo clippy -- -D warnings` (Rust) or equivalent.
+4. **Test** — Write tests if the task adds behavior.
+5. **Verify** — Run `/rust-check` (Rust) or `npm test` (TypeScript in `mcp/`).
 6. **Mark done** — Check off completed items in `SPEC.md` (`- [ ]` → `- [x]`).
 7. **Clean up** — Ensure `git status` is clean before committing. No untracked build artifacts, `node_modules/`, or generated files — add them to `.gitignore` if needed.
 8. **Commit** — Atomic commits, format: `type: description` (feat/fix/test/docs/chore/refactor).
