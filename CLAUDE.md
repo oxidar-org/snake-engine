@@ -4,9 +4,8 @@ Multiplayer snake game server for [oxidar.org](https://oxidar.org) coding sessio
 
 ## Tech Stack
 
-- Rust 2024 edition, `tokio` async runtime
-- `tokio-tungstenite` (WebSocket), `rmp-serde` (MessagePack), `serde`
-- `reqwest` (geo lookup), `tracing` (observability), `anyhow` (errors), `rand`
+- **Game server**: Rust 2024 edition, `tokio` async runtime, `tokio-tungstenite` (WebSocket), `rmp-serde` (MessagePack), `serde`, `reqwest` (geo lookup), `tracing` (observability), `anyhow` (errors), `rand`
+- **MCP server**: TypeScript on Cloudflare Workers, `@modelcontextprotocol/sdk`, `@msgpack/msgpack`
 
 ## Project Layout
 
@@ -27,6 +26,11 @@ src/
     probe.rs           # Deployment smoke-test client
 tests/
   integration.rs       # End-to-end tests
+mcp/
+  src/index.ts         # Worker entry point (Streamable HTTP transport)
+  src/tools.ts         # MCP tool implementations
+  wrangler.jsonc       # Cloudflare Workers config
+  README.md            # MCP server docs (setup, tools, dev)
 ```
 
 ## Game Rules
@@ -61,10 +65,9 @@ Encoding: `rmp_serde::to_vec_named` / `rmp_serde::from_slice`. Serde internally 
 
 ## Deployment
 
-- Dockerfile: multi-stage build (rust:slim -> debian:bookworm-slim + cloudflared)
-- Railway: reads `PORT` env var for WebSocket port, health check on port 9002 (`/health`)
-- Cloudflare tunnel: `cloudflared` runs in-container via `entrypoint.sh`, token from `CLOUDFLARE_TUNNEL_TOKEN` env var
-- Hosts: `snakes.hernan.rs`, `snakes.oxidar.org`
+- **Game server**: Dockerfile (rust:slim -> debian:bookworm-slim + cloudflared), Railway (`PORT` env var, health check on 9002 `/health`), Cloudflare tunnel (`CLOUDFLARE_TUNNEL_TOKEN`)
+- **MCP server**: Cloudflare Workers, auto-deployed via `.github/workflows/deploy-mcp.yml` on push to `master` (paths: `mcp/**`), requires `CLOUDFLARE_API_TOKEN` repo secret
+- **Hosts**: Game — `snakes.hernan.rs`, `snakes.oxidar.org` | MCP — `snakes-mcp.oxidar.org`
 
 ## Development
 

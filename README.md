@@ -1,6 +1,6 @@
 # Oxidar Multiplayer Snake
 
-A multiplayer snake game server for the [oxidar.org](https://oxidar.org) coding session. The server runs the game; your job is to build a client that connects to it. Use any language, any platform -- terminal, web, native, whatever you like.
+A multiplayer snake game server for the [oxidar.org](https://oxidar.org) coding session. The server runs the game; your job is to build a Rust client that connects to it. Terminal, desktop, web, embedded -- pick your platform.
 
 The server handles all game logic: movement, food, collisions, crowns, and leaderboard. Your client just needs to open a WebSocket, send a couple of messages, and render the state it receives.
 
@@ -239,69 +239,12 @@ sequenceDiagram
 
 ---
 
-## Client Tips
+## Client Ideas
 
-### Python
-
-Use `websockets` for the WebSocket connection and `msgpack` (the `msgpack` package on PyPI) for encoding/decoding.
+Every client needs WebSocket + MessagePack. The common foundation is the same regardless of platform:
 
 ```bash
-pip install websockets msgpack
-```
-
-```python
-import asyncio
-import websockets
-import msgpack
-
-async def main():
-    async with websockets.connect("ws://localhost:9001") as ws:
-        # Join
-        await ws.send(msgpack.packb({"type": "join", "username": "pysnake"}))
-
-        # Game loop
-        async for raw in ws:
-            msg = msgpack.unpackb(raw)
-            if msg["type"] == "state":
-                # render msg["food"], msg["snakes"]
-                pass
-```
-
-### JavaScript / TypeScript
-
-Use `ws` (Node.js) or the browser's built-in `WebSocket` for the connection, and `@msgpack/msgpack` for encoding.
-
-```bash
-npm install ws @msgpack/msgpack
-```
-
-```javascript
-import WebSocket from "ws";
-import { encode, decode } from "@msgpack/msgpack";
-
-const ws = new WebSocket("ws://localhost:9001");
-ws.binaryType = "arraybuffer";
-
-ws.on("open", () => {
-  ws.send(encode({ type: "join", username: "jssnake" }));
-});
-
-ws.on("message", (data) => {
-  const msg = decode(data);
-  if (msg.type === "state") {
-    // render msg.food, msg.snakes
-  }
-});
-```
-
-In a browser, use the native `WebSocket` API with `binaryType = "arraybuffer"` and the same `@msgpack/msgpack` library (it works in both environments).
-
-### Rust
-
-Use `tokio-tungstenite` for the WebSocket connection and `rmp-serde` for MessagePack.
-
-```bash
-cargo add tokio tokio-tungstenite rmp-serde serde serde_json
+cargo add tokio tokio-tungstenite futures-util rmp-serde serde serde_json
 ```
 
 ```rust
@@ -327,9 +270,83 @@ while let Some(Ok(msg)) = ws.next().await {
 }
 ```
 
-### Swift
+Pick a platform and add the rendering layer on top:
 
-Use `URLSessionWebSocketTask` (built into Foundation) for the WebSocket connection. For MessagePack, consider `msgpack-swift` or `MessagePack.swift` from SwiftPM. Alternatively, use `Starscream` if you need more control over the WebSocket layer.
+### Terminal -- ratatui
+
+Lowest friction option. No GPU, no windowing -- just your terminal. Ideal if you want to focus on the protocol and game logic.
+
+```bash
+cargo add ratatui crossterm
+```
+
+[`ratatui`](https://ratatui.rs) gives you a grid-based canvas that maps naturally to the 64x32 board. Use `crossterm` for raw-mode input and key events. Run the WebSocket receiver and TUI render loop on separate tokio tasks.
+
+### 2D Graphics -- macroquad
+
+Standalone window with immediate-mode 2D drawing. Minimal boilerplate -- one crate, no ECS, no engine.
+
+```bash
+cargo add macroquad
+```
+
+[`macroquad`](https://macroquad.rs) provides `draw_rectangle`, input handling, and a game loop out of the box. Good choice if you want colored squares on screen fast. Note: macroquad runs its own async runtime, so you'll use its networking or spawn a thread for the WebSocket connection.
+
+### Desktop GUI -- slint
+
+Declarative UI with `.slint` markup files and Rust business logic. Cross-platform (macOS, Linux, Windows) and also runs on embedded Linux (Raspberry Pi with a display).
+
+```bash
+cargo add slint
+```
+
+[`slint`](https://slint.dev) separates layout/styling from logic. Define the board as a grid component in `.slint`, bind snake data from Rust. Good fit if you want a polished UI or plan to run it on a kiosk/embedded device.
+
+### Web (WASM) -- leptos / dioxus
+
+Compile to WebAssembly, run in the browser. Use the browser's native `WebSocket` API.
+
+```bash
+# leptos
+cargo add leptos
+# or dioxus
+cargo add dioxus
+```
+
+[`leptos`](https://leptos.dev) is a reactive web framework with fine-grained reactivity. [`dioxus`](https://dioxuslabs.com) offers a React-like model and can also target desktop and mobile from the same codebase. Both work well -- pick whichever style you prefer.
+
+### Game Engine -- bevy
+
+Full ECS game engine with 2D sprite rendering, asset loading, and input handling.
+
+```bash
+cargo add bevy
+```
+
+[`bevy`](https://bevyengine.org) is more setup than the other options, but gives you the most power. Model snakes as entities, food as a component, and let Bevy's systems handle rendering and input. Great if you want to learn ECS or add particle effects when a crown is earned.
+
+---
+
+## MCP Server — AI-Assisted Client Development
+
+An [MCP server](https://modelcontextprotocol.io) is available to help AI assistants (Claude, Cursor, etc.) build snake clients for you. It provides the protocol spec, game rules, encoding/decoding utilities, and ready-to-run client examples.
+
+**Endpoint**: `https://snakes-mcp.oxidar.org/mcp`
+
+Add to Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "oxidar-snake": {
+      "type": "http",
+      "url": "https://snakes-mcp.oxidar.org/mcp"
+    }
+  }
+}
+```
+
+See [`mcp/README.md`](mcp/README.md) for setup with other clients and the full list of tools.
 
 ---
 
