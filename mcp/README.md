@@ -9,7 +9,7 @@ Participants in oxidar coding sessions implement their own snake clients. This M
 ## Endpoint
 
 ```
-https://oxidar-snake-mcp.workers.dev/mcp
+https://snakes-mcp.oxidar.org/mcp
 ```
 
 ## Adding as a Remote MCP Server
@@ -23,7 +23,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "oxidar-snake": {
       "type": "http",
-      "url": "https://oxidar-snake-mcp.workers.dev/mcp"
+      "url": "https://snakes-mcp.oxidar.org/mcp"
     }
   }
 }
@@ -37,7 +37,7 @@ Open **Settings → MCP** and add:
 {
   "oxidar-snake": {
     "type": "http",
-    "url": "https://oxidar-snake-mcp.workers.dev/mcp"
+    "url": "https://snakes-mcp.oxidar.org/mcp"
   }
 }
 ```
