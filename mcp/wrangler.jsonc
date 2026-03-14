@@ -8,7 +8,7 @@
   "observability": {
     "enabled": true
   },
-  "custom_domains": [
-    { "pattern": "snakes-mcp.oxidar.org" }
+  "routes": [
+    { "pattern": "snakes-mcp.oxidar.org", "custom_domain": true }
   ]
 }
