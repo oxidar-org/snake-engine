@@ -86,3 +86,4 @@ cargo run --bin probe -- wss://snakes.hernan.rs  # smoke test production
 - All tests must pass before committing
 - `tracing`: info for business events, warn for recoverable errors, error for unexpected failures
 - Channel architecture: connections send commands via `mpsc`, game loop broadcasts via `broadcast`
+- **MCP sync rule**: Any task that changes protocol, game rules, or client-visible behavior must include a subtask to update `mcp/src/tools.ts` (PROTOCOL_SPEC, GAME_RULES, DEFAULT_MESSAGES, FIELD_DESCRIPTIONS, CLIENT_EXAMPLES as applicable) and update the CLAUDE.md protocol tables
