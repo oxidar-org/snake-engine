@@ -63,7 +63,9 @@ export default {
 
     await server.connect(transport);
     const response = await transport.handleRequest(normalizedRequest);
-    await server.close();
+    // Do NOT call server.close() here — it kills the SSE stream before
+    // the client can read it. Workers runtime handles cleanup when the
+    // response stream ends.
 
     // Propagate CORS headers onto every MCP response
     const headers = new Headers(response.headers);
