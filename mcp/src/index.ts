@@ -24,9 +24,18 @@ const CORS_HEADERS: HeadersInit = {
 
 export default {
   async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+
     // Pre-flight — required for browser-based MCP clients
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
+    }
+
+    // Only serve the /mcp endpoint. Return 404 for everything else
+    // (including /.well-known/oauth-authorization-server) so clients
+    // know this server requires no authentication.
+    if (url.pathname !== "/mcp") {
+      return new Response("Not Found", { status: 404, headers: CORS_HEADERS });
     }
 
     // Ensure Accept header includes both types the MCP SDK requires.
