@@ -29,6 +29,22 @@ export default {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
 
+    // Ensure Accept header includes both types the MCP SDK requires.
+    // Some clients (e.g. Claude Code) may not send the exact header,
+    // causing a 406 rejection from the transport layer.
+    const reqHeaders = new Headers(request.headers);
+    const accept = reqHeaders.get("Accept") ?? "";
+    const needs = ["application/json", "text/event-stream"];
+    const missing = needs.filter((t) => !accept.includes(t));
+    if (missing.length > 0) {
+      reqHeaders.set("Accept", [accept, ...missing].filter(Boolean).join(", "));
+    }
+    const normalizedRequest = new Request(request.url, {
+      method: request.method,
+      headers: reqHeaders,
+      body: request.body,
+    });
+
     const server = buildServer();
     // sessionIdGenerator: undefined → stateless mode; safe for Cloudflare Workers
     // where each invocation is isolated with no shared in-memory state.
@@ -37,7 +53,7 @@ export default {
     });
 
     await server.connect(transport);
-    const response = await transport.handleRequest(request);
+    const response = await transport.handleRequest(normalizedRequest);
     await server.close();
 
     // Propagate CORS headers onto every MCP response
