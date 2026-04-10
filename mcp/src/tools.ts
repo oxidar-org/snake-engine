@@ -114,7 +114,7 @@ const GAME_RULES = `# Oxidar Snake — Game Rules
 - Coordinate origin: top-left (0,0); x increases right, y increases down
 
 ## Players
-- Maximum players: 32
+- Maximum players: 128
 - New connections start as spectators (they receive state but cannot move)
 - Send a "join" message to become a player
 
@@ -521,7 +521,7 @@ export function registerTools(server: McpServer): void {
   server.tool(
     "get_game_rules",
     "Returns the game rules for oxidar-snake: board dimensions (64×32 toroidal), " +
-      "no collisions/death, max 32 players, start length 4, win length 16 (earns crown, resets), " +
+      "no collisions/death, max 128 players, start length 4, win length 16 (earns crown, resets), " +
       "200ms tick rate, food respawn, and 60-second reconnect window.",
     async () => ({
       content: [{ type: "text" as const, text: GAME_RULES }],

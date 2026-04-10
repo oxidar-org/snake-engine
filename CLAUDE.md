@@ -36,7 +36,7 @@ mcp/
 ## Game Rules
 
 - 64x32 toroidal board, no collisions, no death
-- Max 32 players, start length 4, win length 16 (earns a crown, resets snake)
+- Max 128 players, start length 4, win length 16 (earns a crown, resets snake)
 - 200ms tick rate, food respawns on eat
 - Reconnect within 60s preserves snake state (position, crowns, color, country)
 
