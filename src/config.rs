@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::Result;
 use serde::Deserialize;
 use std::fs;
 
@@ -19,6 +19,7 @@ pub struct GameConfig {
     pub snake_win_length: u16,
     pub disconnect_timeout_s: u64,
     pub leaderboard_interval_ticks: u64,
+    #[serde(default)]
     pub palette: Vec<String>,
 }
 
@@ -34,12 +35,40 @@ fn default_health_port() -> u16 {
     9002
 }
 
+fn hsl_to_hex(h: f64, s: f64, l: f64) -> String {
+    let c = (1.0 - (2.0 * l - 1.0).abs()) * s;
+    let h_prime = h / 60.0;
+    let x = c * (1.0 - (h_prime % 2.0 - 1.0).abs());
+    let (r1, g1, b1) = match h_prime as u32 {
+        0 => (c, x, 0.0),
+        1 => (x, c, 0.0),
+        2 => (0.0, c, x),
+        3 => (0.0, x, c),
+        4 => (x, 0.0, c),
+        _ => (c, 0.0, x),
+    };
+    let m = l - c / 2.0;
+    let r = ((r1 + m) * 255.0).round() as u8;
+    let g = ((g1 + m) * 255.0).round() as u8;
+    let b = ((b1 + m) * 255.0).round() as u8;
+    format!("#{:02X}{:02X}{:02X}", r, g, b)
+}
+
+pub fn generate_palette(n: usize) -> Vec<String> {
+    (0..n)
+        .map(|i| {
+            let hue = i as f64 * 360.0 / n as f64;
+            hsl_to_hex(hue, 0.75, 0.55)
+        })
+        .collect()
+}
+
 impl Config {
     pub fn load(path: &str) -> Result<Config> {
         let content = fs::read_to_string(path)?;
-        let config: Config = toml::from_str(&content)?;
+        let mut config: Config = toml::from_str(&content)?;
         if config.game.palette.is_empty() {
-            bail!("game.palette must contain at least one color");
+            config.game.palette = generate_palette(config.game.max_players as usize);
         }
         Ok(config)
     }
@@ -48,6 +77,7 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
 
     fn from_str(s: &str) -> Result<Config, toml::de::Error> {
         toml::from_str(s)
@@ -90,7 +120,7 @@ health_port = 9002
     }
 
     #[test]
-    fn missing_palette_fails_deserialization() {
+    fn missing_palette_deserializes_to_empty() {
         let toml = r##"
 [game]
 board_width = 64
@@ -106,11 +136,12 @@ leaderboard_interval_ticks = 25
 host = "0.0.0.0"
 port = 9001
 "##;
-        assert!(from_str(toml).is_err());
+        let config = from_str(toml).unwrap();
+        assert!(config.game.palette.is_empty());
     }
 
     #[test]
-    fn empty_palette_fails_validation() {
+    fn empty_palette_auto_generates_on_load() {
         let toml = r##"
 [game]
 board_width = 64
@@ -128,12 +159,28 @@ host = "0.0.0.0"
 port = 9001
 "##;
         let config: Config = from_str(toml).unwrap();
-        let result = (|| -> anyhow::Result<()> {
-            if config.game.palette.is_empty() {
-                anyhow::bail!("game.palette must contain at least one color");
-            }
-            Ok(())
-        })();
-        assert!(result.is_err());
+        // Deserialization succeeds and palette is empty before load() auto-generates
+        assert!(config.game.palette.is_empty());
+    }
+
+    #[test]
+    fn generate_palette_produces_unique_colors() {
+        let palette = generate_palette(128);
+        let unique: HashSet<&String> = palette.iter().collect();
+        assert_eq!(unique.len(), 128);
+    }
+
+    #[test]
+    fn generate_palette_produces_valid_hex() {
+        let palette = generate_palette(128);
+        for color in &palette {
+            assert_eq!(color.len(), 7, "color must be 7 chars: {color}");
+            assert!(color.starts_with('#'), "color must start with #: {color}");
+            let hex_chars = &color[1..];
+            assert!(
+                hex_chars.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_lowercase()),
+                "color must be uppercase hex: {color}"
+            );
+        }
     }
 }
