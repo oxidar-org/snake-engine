@@ -19,6 +19,8 @@ pub struct GameConfig {
     pub snake_win_length: u16,
     pub disconnect_timeout_s: u64,
     pub leaderboard_interval_ticks: u64,
+    #[serde(default = "default_chaos_interval_ticks")]
+    pub chaos_interval_ticks: u64,
     #[serde(default)]
     pub palette: Vec<String>,
 }
@@ -33,6 +35,10 @@ pub struct ServerConfig {
 
 fn default_health_port() -> u16 {
     9002
+}
+
+fn default_chaos_interval_ticks() -> u64 {
+    10
 }
 
 fn hsl_to_hex(h: f64, s: f64, l: f64) -> String {
@@ -72,6 +78,15 @@ impl Config {
         }
         Ok(config)
     }
+
+    #[cfg(test)]
+    pub fn load_from_str(content: &str) -> Result<Config> {
+        let mut config: Config = toml::from_str(content)?;
+        if config.game.palette.is_empty() {
+            config.game.palette = generate_palette(config.game.max_players as usize);
+        }
+        Ok(config)
+    }
 }
 
 #[cfg(test)]
@@ -93,6 +108,7 @@ snake_start_length = 4
 snake_win_length = 16
 disconnect_timeout_s = 60
 leaderboard_interval_ticks = 25
+chaos_interval_ticks = 5
 palette = ["#FF0000", "#00FF00"]
 
 [server]
@@ -113,6 +129,7 @@ health_port = 9002
         assert_eq!(config.game.snake_win_length, 16);
         assert_eq!(config.game.disconnect_timeout_s, 60);
         assert_eq!(config.game.leaderboard_interval_ticks, 25);
+        assert_eq!(config.game.chaos_interval_ticks, 5);
         assert_eq!(config.game.palette, vec!["#FF0000", "#00FF00"]);
         assert_eq!(config.server.host, "0.0.0.0");
         assert_eq!(config.server.port, 9001);
@@ -161,6 +178,27 @@ port = 9001
         let config: Config = from_str(toml).unwrap();
         // Deserialization succeeds and palette is empty before load() auto-generates
         assert!(config.game.palette.is_empty());
+    }
+
+    #[test]
+    fn chaos_interval_ticks_defaults_to_ten() {
+        let toml = r##"
+[game]
+board_width = 64
+board_height = 32
+max_players = 32
+tick_ms = 200
+snake_start_length = 4
+snake_win_length = 16
+disconnect_timeout_s = 60
+leaderboard_interval_ticks = 25
+
+[server]
+host = "0.0.0.0"
+port = 9001
+"##;
+        let config = Config::load_from_str(toml).unwrap();
+        assert_eq!(config.game.chaos_interval_ticks, 10);
     }
 
     #[test]
