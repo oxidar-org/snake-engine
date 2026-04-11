@@ -216,7 +216,9 @@ port = 9001
             assert!(color.starts_with('#'), "color must start with #: {color}");
             let hex_chars = &color[1..];
             assert!(
-                hex_chars.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_lowercase()),
+                hex_chars
+                    .chars()
+                    .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_lowercase()),
                 "color must be uppercase hex: {color}"
             );
         }

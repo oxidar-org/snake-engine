@@ -289,7 +289,10 @@ async fn chaos_toggle_via_http_delivers_unparseable_frames() {
         .await
         .unwrap_or(0);
     let response = std::str::from_utf8(&buf[..n]).unwrap_or("");
-    assert!(response.contains("chaos on"), "expected 'chaos on', got: {response}");
+    assert!(
+        response.contains("chaos on"),
+        "expected 'chaos on', got: {response}"
+    );
 
     // Connect a spectator and collect frames
     let mut ws = connect(port).await;
@@ -308,7 +311,10 @@ async fn chaos_toggle_via_http_delivers_unparseable_frames() {
     timeout(Duration::from_secs(3), collect)
         .await
         .expect("timed out before seeing 3 unparseable chaos frames");
-    assert!(unparseable >= 3, "expected ≥3 chaos frames, got {unparseable}");
+    assert!(
+        unparseable >= 3,
+        "expected ≥3 chaos frames, got {unparseable}"
+    );
 
     // Disable chaos and verify response
     let mut stream2 = tokio::net::TcpStream::connect(format!("127.0.0.1:{health_port}"))
@@ -324,7 +330,10 @@ async fn chaos_toggle_via_http_delivers_unparseable_frames() {
         .await
         .unwrap_or(0);
     let response = std::str::from_utf8(&buf[..n]).unwrap_or("");
-    assert!(response.contains("chaos off"), "expected 'chaos off', got: {response}");
+    assert!(
+        response.contains("chaos off"),
+        "expected 'chaos off', got: {response}"
+    );
 
     ws.close(None).await.ok();
 }

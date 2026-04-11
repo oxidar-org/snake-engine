@@ -90,7 +90,11 @@ struct MissingFields {
 }
 
 fn chaos_missing_fields(tick: u64) -> Vec<u8> {
-    rmp_serde::to_vec_named(&MissingFields { type_: "state", tick }).expect("serialize")
+    rmp_serde::to_vec_named(&MissingFields {
+        type_: "state",
+        tick,
+    })
+    .expect("serialize")
 }
 
 // Type f: valid State but tick goes backwards; snakes is empty
@@ -154,7 +158,10 @@ mod tests {
         for tick in [10u64, 11, 12, 13, 14] {
             let mut inj = enabled_injector(1);
             let bytes = inj.generate(tick).unwrap();
-            assert!(!bytes.is_empty(), "chaos at tick {tick} produced empty bytes");
+            assert!(
+                !bytes.is_empty(),
+                "chaos at tick {tick} produced empty bytes"
+            );
         }
     }
 
