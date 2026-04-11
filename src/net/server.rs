@@ -65,9 +65,19 @@ pub async fn run(config: Config) -> anyhow::Result<()> {
     let listen_broadcast_tx = broadcast_tx.clone();
     let listen_session_tx = session_mgr_tx.clone();
 
+    let listen_chaos_enabled = chaos_enabled.clone();
+
     // Spawn the WebSocket listener
     tokio::spawn(async move {
-        if let Err(e) = listen(addr, listen_cmd_tx, listen_broadcast_tx, listen_session_tx).await {
+        if let Err(e) = listen(
+            addr,
+            listen_cmd_tx,
+            listen_broadcast_tx,
+            listen_session_tx,
+            listen_chaos_enabled,
+        )
+        .await
+        {
             tracing::error!(error = %e, "listener failed");
         }
     });
@@ -239,6 +249,7 @@ async fn listen(
     cmd_tx: mpsc::Sender<Command>,
     broadcast_tx: broadcast::Sender<Vec<u8>>,
     session_mgr_tx: mpsc::Sender<SessionMgrOp>,
+    chaos_enabled: Arc<AtomicBool>,
 ) -> anyhow::Result<()> {
     let listener = TcpListener::bind(addr).await?;
     info!(%addr, "WebSocket server listening");
@@ -250,10 +261,18 @@ async fn listen(
         let cmd_tx = cmd_tx.clone();
         let broadcast_tx = broadcast_tx.clone();
         let session_mgr_tx = session_mgr_tx.clone();
+        let chaos_enabled = chaos_enabled.clone();
 
         tokio::spawn(async move {
-            if let Err(e) =
-                handle_connection(stream, peer, cmd_tx, broadcast_tx, session_mgr_tx).await
+            if let Err(e) = handle_connection(
+                stream,
+                peer,
+                cmd_tx,
+                broadcast_tx,
+                session_mgr_tx,
+                chaos_enabled,
+            )
+            .await
             {
                 warn!(%peer, error = %e, "connection error");
             }
@@ -304,12 +323,49 @@ async fn listen_health(addr: SocketAddr, chaos_enabled: Arc<AtomicBool>) -> anyh
 }
 
 async fn handle_connection(
-    stream: TcpStream,
+    mut stream: TcpStream,
     peer: SocketAddr,
     cmd_tx: mpsc::Sender<Command>,
     broadcast_tx: broadcast::Sender<Vec<u8>>,
     session_mgr_tx: mpsc::Sender<SessionMgrOp>,
+    chaos_enabled: Arc<AtomicBool>,
 ) -> anyhow::Result<()> {
+    // Peek at the first line to detect plain HTTP (chaos toggle) vs WebSocket upgrade.
+    let mut buf = [0u8; 128];
+    let n = stream.peek(&mut buf).await.unwrap_or(0);
+    let first_line = std::str::from_utf8(&buf[..n])
+        .unwrap_or("")
+        .lines()
+        .next()
+        .unwrap_or("");
+
+    if first_line.starts_with("POST /chaos/on") {
+        chaos_enabled.store(true, Ordering::Relaxed);
+        info!("chaos enabled via game port");
+        let body = "chaos on\n";
+        let resp = format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        stream.write_all(resp.as_bytes()).await.ok();
+        stream.shutdown().await.ok();
+        return Ok(());
+    }
+    if first_line.starts_with("POST /chaos/off") {
+        chaos_enabled.store(false, Ordering::Relaxed);
+        info!("chaos disabled via game port");
+        let body = "chaos off\n";
+        let resp = format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        stream.write_all(resp.as_bytes()).await.ok();
+        stream.shutdown().await.ok();
+        return Ok(());
+    }
+
     let country = geo::lookup_country(&peer.ip().to_string()).await;
     let ws = tokio_tungstenite::accept_async(stream).await?;
     let (mut ws_sink, mut ws_stream) = ws.split();
