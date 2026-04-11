@@ -1,4 +1,6 @@
 use std::net::SocketAddr;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use futures_util::{SinkExt, StreamExt};
 use tokio::io::AsyncWriteExt;
@@ -7,6 +9,8 @@ use tokio::sync::{broadcast, mpsc};
 use tokio::time::Interval;
 use tokio_tungstenite::tungstenite::Message;
 use tracing::{debug, info, warn};
+
+use super::chaos::ChaosInjector;
 
 use crate::config::Config;
 use crate::game::engine::GameEngine;
@@ -48,6 +52,8 @@ pub async fn run(config: Config) -> anyhow::Result<()> {
     let (cmd_tx, cmd_rx) = mpsc::channel(256);
     let (broadcast_tx, _) = broadcast::channel::<Vec<u8>>(64);
     let (session_mgr_tx, session_mgr_rx) = mpsc::channel(64);
+    let chaos = ChaosInjector::new(config.game.chaos_interval_ticks);
+    let chaos_enabled = chaos.enabled.clone();
 
     let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
     let health_addr: SocketAddr =
@@ -68,14 +74,14 @@ pub async fn run(config: Config) -> anyhow::Result<()> {
 
     // Spawn the health check listener
     tokio::spawn(async move {
-        if let Err(e) = listen_health(health_addr).await {
+        if let Err(e) = listen_health(health_addr, chaos_enabled).await {
             tracing::error!(error = %e, "health listener failed");
         }
     });
 
     // Run the game loop until shutdown signal
     tokio::select! {
-        _ = game_loop(config, cmd_rx, broadcast_tx, session_mgr_rx) => {}
+        _ = game_loop(config, cmd_rx, broadcast_tx, session_mgr_rx, chaos) => {}
         _ = shutdown => {
             info!("shutdown signal received, exiting");
         }
@@ -110,6 +116,7 @@ async fn game_loop(
     mut cmd_rx: mpsc::Receiver<Command>,
     broadcast_tx: broadcast::Sender<Vec<u8>>,
     mut session_mgr_rx: mpsc::Receiver<SessionMgrOp>,
+    mut chaos: ChaosInjector,
 ) {
     let rng: Box<dyn rand::Rng + Send> = {
         use rand::SeedableRng;
@@ -150,6 +157,11 @@ async fn game_loop(
                 let state_msg: ServerMessage = (&result).into();
                 let state_bytes = protocol::encode(&state_msg);
                 let _ = broadcast_tx.send(state_bytes);
+
+                // Chaos injection (no-op when disabled or tick not at interval)
+                if let Some(chaos_bytes) = chaos.generate(result.tick) {
+                    let _ = broadcast_tx.send(chaos_bytes);
+                }
 
                 // Broadcast leaderboard at interval
                 if tick_count.is_multiple_of(config.game.leaderboard_interval_ticks) {
@@ -250,18 +262,41 @@ async fn listen(
 }
 
 /// Listen for HTTP health check requests on a dedicated port.
-async fn listen_health(addr: SocketAddr) -> anyhow::Result<()> {
+async fn listen_health(addr: SocketAddr, chaos_enabled: Arc<AtomicBool>) -> anyhow::Result<()> {
     let listener = TcpListener::bind(addr).await?;
     info!(%addr, "health check listener started");
 
     loop {
         let (mut stream, _) = listener.accept().await?;
+        let chaos_enabled = chaos_enabled.clone();
         tokio::spawn(async move {
-            // Drain the incoming request
             let mut buf = [0u8; 1024];
-            let _ = tokio::io::AsyncReadExt::read(&mut stream, &mut buf).await;
+            let n = tokio::io::AsyncReadExt::read(&mut stream, &mut buf)
+                .await
+                .unwrap_or(0);
+            let first_line = std::str::from_utf8(&buf[..n])
+                .unwrap_or("")
+                .lines()
+                .next()
+                .unwrap_or("");
 
-            let response = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
+            let body = if first_line.starts_with("POST /chaos/on") {
+                chaos_enabled.store(true, Ordering::Relaxed);
+                info!("chaos enabled");
+                "chaos on\n"
+            } else if first_line.starts_with("POST /chaos/off") {
+                chaos_enabled.store(false, Ordering::Relaxed);
+                info!("chaos disabled");
+                "chaos off\n"
+            } else {
+                "ok"
+            };
+
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+                body.len(),
+                body
+            );
             let _ = stream.write_all(response.as_bytes()).await;
             let _ = stream.shutdown().await;
         });
