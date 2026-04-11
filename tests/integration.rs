@@ -262,3 +262,69 @@ async fn health_endpoint_returns_200() {
         "body should be 'ok', got: {response}"
     );
 }
+
+#[tokio::test]
+async fn chaos_toggle_via_http_delivers_unparseable_frames() {
+    let port = free_port().await;
+    let health_port = free_port().await;
+    let mut config = test_config(port, health_port);
+    config.game.chaos_interval_ticks = 1; // fire on every tick
+    config.game.tick_ms = 50;
+
+    tokio::spawn(oxidar_snake::net::server::run(config));
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    // Enable chaos via HTTP
+    let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{health_port}"))
+        .await
+        .expect("tcp connect");
+    tokio::io::AsyncWriteExt::write_all(
+        &mut stream,
+        b"POST /chaos/on HTTP/1.1\r\nHost: localhost\r\n\r\n",
+    )
+    .await
+    .expect("write");
+    let mut buf = vec![0u8; 256];
+    let n = tokio::io::AsyncReadExt::read(&mut stream, &mut buf)
+        .await
+        .unwrap_or(0);
+    let response = std::str::from_utf8(&buf[..n]).unwrap_or("");
+    assert!(response.contains("chaos on"), "expected 'chaos on', got: {response}");
+
+    // Connect a spectator and collect frames
+    let mut ws = connect(port).await;
+    let mut unparseable = 0usize;
+
+    let collect = async {
+        while let Some(Ok(Message::Binary(data))) = ws.next().await {
+            if rmp_serde::from_slice::<ServerMessage>(&data).is_err() {
+                unparseable += 1;
+                if unparseable >= 3 {
+                    break;
+                }
+            }
+        }
+    };
+    timeout(Duration::from_secs(3), collect)
+        .await
+        .expect("timed out before seeing 3 unparseable chaos frames");
+    assert!(unparseable >= 3, "expected ≥3 chaos frames, got {unparseable}");
+
+    // Disable chaos and verify response
+    let mut stream2 = tokio::net::TcpStream::connect(format!("127.0.0.1:{health_port}"))
+        .await
+        .expect("tcp connect");
+    tokio::io::AsyncWriteExt::write_all(
+        &mut stream2,
+        b"POST /chaos/off HTTP/1.1\r\nHost: localhost\r\n\r\n",
+    )
+    .await
+    .expect("write");
+    let n = tokio::io::AsyncReadExt::read(&mut stream2, &mut buf)
+        .await
+        .unwrap_or(0);
+    let response = std::str::from_utf8(&buf[..n]).unwrap_or("");
+    assert!(response.contains("chaos off"), "expected 'chaos off', got: {response}");
+
+    ws.close(None).await.ok();
+}
