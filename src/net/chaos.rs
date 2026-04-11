@@ -35,12 +35,16 @@ impl ChaosInjector {
 }
 
 fn random_chaos(rng: &mut dyn Rng, current_tick: u64) -> Vec<u8> {
-    match rng.random_range(0u8..5) {
+    match rng.random_range(0u8..9) {
         0 => chaos_garbage(rng),
         1 => chaos_unknown_type(),
         2 => chaos_wrong_field_types(),
         3 => chaos_missing_fields(current_tick),
-        _ => chaos_out_of_order(rng, current_tick),
+        4 => chaos_out_of_order(rng, current_tick),
+        5 => chaos_teleporting_food(rng, current_tick),
+        6 => chaos_ghost_snakes(rng, current_tick),
+        7 => chaos_impossible_coordinates(rng, current_tick),
+        _ => chaos_crown_regression(rng),
     }
 }
 
@@ -115,6 +119,126 @@ fn chaos_out_of_order(rng: &mut dyn Rng, current_tick: u64) -> Vec<u8> {
         tick: current_tick - offset,
         food: [0, 0],
         snakes: vec![],
+    })
+    .expect("serialize")
+}
+
+// Type g: valid State but food teleports to a random position every tick
+#[derive(Serialize)]
+struct TeleportingFood {
+    #[serde(rename = "type")]
+    type_: &'static str,
+    tick: u64,
+    food: [u16; 2],
+    snakes: Vec<[u16; 2]>,
+}
+
+fn chaos_teleporting_food(rng: &mut dyn Rng, current_tick: u64) -> Vec<u8> {
+    rmp_serde::to_vec_named(&TeleportingFood {
+        type_: "state",
+        tick: current_tick,
+        food: [rng.random_range(0u16..128), rng.random_range(0u16..64)],
+        snakes: vec![],
+    })
+    .expect("serialize")
+}
+
+// Type h: valid State with fake ghost players not on the leaderboard
+#[derive(Serialize)]
+struct GhostSnakeData {
+    name: String,
+    body: Vec<[u16; 2]>,
+    dir: u8,
+    crowns: u32,
+    color: String,
+    country: Option<String>,
+}
+
+#[derive(Serialize)]
+struct GhostSnakes {
+    #[serde(rename = "type")]
+    type_: &'static str,
+    tick: u64,
+    food: [u16; 2],
+    snakes: Vec<GhostSnakeData>,
+}
+
+fn chaos_ghost_snakes(rng: &mut dyn Rng, current_tick: u64) -> Vec<u8> {
+    let count = rng.random_range(1u8..=4);
+    let snakes = (0..count)
+        .map(|i| {
+            let x = rng.random_range(0u16..128);
+            let y = rng.random_range(0u16..64);
+            GhostSnakeData {
+                name: format!("ghost_{i}"),
+                body: vec![[x, y], [x.saturating_sub(1), y], [x.saturating_sub(2), y]],
+                dir: rng.random_range(0u8..4),
+                crowns: rng.random_range(0u32..100),
+                color: "#FF00FF".into(),
+                country: None,
+            }
+        })
+        .collect();
+    rmp_serde::to_vec_named(&GhostSnakes {
+        type_: "state",
+        tick: current_tick,
+        food: [0, 0],
+        snakes,
+    })
+    .expect("serialize")
+}
+
+// Type i: valid State but snake bodies contain out-of-bounds coordinates
+#[derive(Serialize)]
+struct ImpossibleSnakeData {
+    name: &'static str,
+    body: Vec<[u16; 2]>,
+    dir: u8,
+    crowns: u32,
+    color: &'static str,
+    country: Option<String>,
+}
+
+#[derive(Serialize)]
+struct ImpossibleState {
+    #[serde(rename = "type")]
+    type_: &'static str,
+    tick: u64,
+    food: [u16; 2],
+    snakes: Vec<ImpossibleSnakeData>,
+}
+
+fn chaos_impossible_coordinates(rng: &mut dyn Rng, current_tick: u64) -> Vec<u8> {
+    rmp_serde::to_vec_named(&ImpossibleState {
+        type_: "state",
+        tick: current_tick,
+        food: [65535, 65535],
+        snakes: vec![ImpossibleSnakeData {
+            name: "void",
+            body: vec![[65535, 65535], [65534, 65535], [65533, 65535]],
+            dir: rng.random_range(0u8..4),
+            crowns: 0,
+            color: "#000000",
+            country: None,
+        }],
+    })
+    .expect("serialize")
+}
+
+// Type j: valid Crown event but crowns go backwards
+#[derive(Serialize)]
+struct CrownRegression {
+    #[serde(rename = "type")]
+    type_: &'static str,
+    name: &'static str,
+    crowns: u32,
+}
+
+fn chaos_crown_regression(rng: &mut dyn Rng) -> Vec<u8> {
+    rmp_serde::to_vec_named(&CrownRegression {
+        type_: "crown",
+        name: "nobody",
+        crowns: rng.random_range(0u32..5),
     })
     .expect("serialize")
 }
