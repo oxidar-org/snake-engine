@@ -1,9 +1,9 @@
 [game]
-board_width = 64
-board_height = 32
+board_width = 128
+board_height = 64
 max_players = 128
-tick_ms = 200
-snake_start_length = 4
+tick_ms = 100
+snake_start_length = 3
 snake_win_length = 16
 disconnect_timeout_s = 60
 leaderboard_interval_ticks = 25
