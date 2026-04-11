@@ -13,6 +13,7 @@ pub struct ChaosInjector {
 
 impl ChaosInjector {
     pub fn new(interval_ticks: u64) -> Self {
+        assert!(interval_ticks > 0, "interval_ticks must be > 0");
         use rand::SeedableRng;
         let rng = Box::new(rand::rngs::StdRng::from_rng(&mut rand::rng()));
         Self {
@@ -26,7 +27,7 @@ impl ChaosInjector {
         if !self.enabled.load(Ordering::Relaxed) {
             return None;
         }
-        if tick % self.interval_ticks != 0 {
+        if !tick.is_multiple_of(self.interval_ticks) {
             return None;
         }
         Some(random_chaos(&mut *self.rng, tick))
@@ -103,7 +104,7 @@ struct OutOfOrderState {
 }
 
 fn chaos_out_of_order(rng: &mut dyn Rng, current_tick: u64) -> Vec<u8> {
-    let max_offset = current_tick.min(50).max(1);
+    let max_offset = current_tick.clamp(1, 50);
     let offset = rng.random_range(1..=max_offset);
     rmp_serde::to_vec_named(&OutOfOrderState {
         type_: "state",
