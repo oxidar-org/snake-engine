@@ -1,3 +1,4 @@
+pub mod chaos;
 pub mod protocol;
 pub mod server;
 pub mod session;
